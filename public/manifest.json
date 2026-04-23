@@ -1,0 +1,52 @@
+{
+    "name": "Interior Villa Management System",
+    "short_name": "IVMS",
+    "description": "Complete business management for Interior Villa BD - CRM, Projects, Procurement, Inventory, Accounts & HR",
+    "start_url": "/",
+    "scope": "/",
+    "display": "standalone",
+    "orientation": "any",
+    "background_color": "#0f172a",
+    "theme_color": "#6366f1",
+    "categories": ["business", "productivity"],
+    "icons": [
+        {
+            "src": "/icons/icon.svg",
+            "sizes": "any",
+            "type": "image/svg+xml",
+            "purpose": "any"
+        },
+        {
+            "src": "/icons/icon-192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "/icons/icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any maskable"
+        }
+    ],
+    "shortcuts": [
+        {
+            "name": "CRM Pipeline",
+            "short_name": "Pipeline",
+            "url": "/crm",
+            "icons": [{ "src": "/icons/icon.svg", "sizes": "any" }]
+        },
+        {
+            "name": "Projects",
+            "short_name": "Projects",
+            "url": "/projects",
+            "icons": [{ "src": "/icons/icon.svg", "sizes": "any" }]
+        },
+        {
+            "name": "Quotations",
+            "short_name": "Quotes",
+            "url": "/quotations",
+            "icons": [{ "src": "/icons/icon.svg", "sizes": "any" }]
+        }
+    ]
+}

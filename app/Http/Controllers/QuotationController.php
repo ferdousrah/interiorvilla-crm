@@ -1,0 +1,466 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Mail\QuotationMail;
+use App\Models\Client;
+use Barryvdh\DomPDF\Facade\Pdf;
+use App\Models\Lead;
+use App\Models\Project;
+use App\Models\Quotation;
+use App\Models\QuotationItem;
+use App\Models\Setting;
+use App\Services\CodeGeneratorService;
+use App\Support\NumberToWords;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\URL;
+use Inertia\Inertia;
+use Inertia\Response;
+
+class QuotationController extends Controller
+{
+    public function __construct(private CodeGeneratorService $codeGenerator) {}
+
+    public function index(Request $request): Response
+    {
+        $query = Quotation::with(['client', 'lead', 'project', 'createdBy'])
+            ->whereNull('deleted_at');
+
+        if ($search = $request->get('search')) {
+            $query->where(function ($q) use ($search) {
+                $q->where('code', 'like', "%{$search}%")
+                  ->orWhere('subject', 'like', "%{$search}%")
+                  ->orWhereHas('client', fn($q) => $q->where('name', 'like', "%{$search}%"));
+            });
+        }
+        if ($status = $request->get('status')) {
+            $query->where('status', $status);
+        }
+
+        $quotations = $query->orderByDesc('created_at')->paginate(20)->withQueryString();
+
+        return Inertia::render('Quotations/Index', [
+            'quotations' => $quotations,
+            'filters'    => $request->only('search', 'status'),
+        ]);
+    }
+
+    public function create(Request $request): Response
+    {
+        return Inertia::render('Quotations/Create', [
+            'clients'           => Client::orderBy('name')->get(['id', 'name', 'code', 'phone']),
+            'leads'             => Lead::whereNotIn('status', ['won', 'lost'])->orderBy('name')->get(['id', 'name', 'phone', 'estimated_value', 'address']),
+            'projects'          => Project::whereNotIn('status', ['completed', 'cancelled'])->orderBy('name')->get(['id', 'name', 'code']),
+            'serviceCategories' => config('services_catalog.service_categories'),
+            'prefill'           => [
+                'lead_id'    => $request->get('lead_id'),
+                'client_id'  => $request->get('client_id'),
+                'project_id' => $request->get('project_id'),
+            ],
+        ]);
+    }
+
+    public function store(Request $request): RedirectResponse
+    {
+        $validated = $this->validateQuotation($request);
+
+        if (empty($validated['client_id']) && empty($validated['lead_id'])) {
+            return back()->withErrors(['client_id' => 'Select a client or at least a lead.'])->withInput();
+        }
+
+        DB::transaction(function () use ($validated) {
+            $code = $this->codeGenerator->generate('QT', 'quotations');
+            $totals = $this->calculateTotals($validated);
+
+            $quotation = Quotation::create([
+                'code'                   => $code,
+                'client_id'              => $validated['client_id'] ?? null,
+                'lead_id'                => $validated['lead_id'] ?? null,
+                'project_id'             => $validated['project_id'] ?? null,
+                'subject'                => $validated['subject'],
+                'service_group'          => $validated['service_group'] ?? null,
+                'service_type'           => $validated['service_type'] ?? null,
+                'document_date'          => $validated['document_date'] ?? now()->toDateString(),
+                'valid_until'            => $validated['valid_until'] ?? null,
+                'discount_type'          => $validated['discount_type'],
+                'discount_value'         => $validated['discount_value'] ?? 0,
+                'discount_amount'        => $totals['discount_amount'],
+                'vat_pct'                => $validated['vat_pct'] ?? 0,
+                'subtotal'               => $totals['subtotal'],
+                'vat_amount'             => $totals['vat_amount'],
+                'transportation_amount'  => $totals['transportation_amount'],
+                'supervision_pct'        => $validated['supervision_pct'] ?? 0,
+                'supervision_amount'     => $totals['supervision_amount'],
+                'grand_total'            => $totals['grand_total'],
+                'terms'                  => $validated['terms'] ?? null,
+                'notes'                  => $validated['notes'] ?? null,
+                'created_by'             => auth()->id(),
+            ]);
+
+            $this->syncItems($quotation, $validated['items']);
+        });
+
+        return redirect()->route('quotations.index')->with('success', 'Quotation created successfully.');
+    }
+
+    public function show(Quotation $quotation): Response
+    {
+        $quotation->load(['client', 'lead', 'project', 'items', 'createdBy']);
+
+        $logoPath = Setting::get('company_logo');
+
+        return Inertia::render('Quotations/Show', [
+            'quotation' => $quotation,
+            'company'   => [
+                'name'    => Setting::get('company_name', 'Interior Villa'),
+                'email'   => Setting::get('company_email'),
+                'phone'   => Setting::get('company_phone'),
+                'phone2'  => Setting::get('company_phone2'),
+                'address' => Setting::get('company_address'),
+                'logo'    => $logoPath ? asset('storage/' . $logoPath) : null,
+            ],
+            'grandTotalInWords' => NumberToWords::toBdt((float) $quotation->grand_total),
+        ]);
+    }
+
+    public function edit(Quotation $quotation): Response
+    {
+        if (!in_array($quotation->status, ['draft', 'sent', 'under_review'])) {
+            return redirect()->route('quotations.show', $quotation)
+                ->with('error', 'Only draft or sent quotations can be edited.');
+        }
+
+        $quotation->load(['items']);
+
+        return Inertia::render('Quotations/Edit', [
+            'quotation'         => $quotation,
+            'clients'           => Client::orderBy('name')->get(['id', 'name', 'code', 'phone']),
+            'leads'             => Lead::whereNotIn('status', ['won', 'lost'])->orderBy('name')->get(['id', 'name', 'phone', 'address']),
+            'projects'          => Project::whereNotIn('status', ['completed', 'cancelled'])->orderBy('name')->get(['id', 'name', 'code']),
+            'serviceCategories' => config('services_catalog.service_categories'),
+        ]);
+    }
+
+    public function update(Request $request, Quotation $quotation): RedirectResponse
+    {
+        $validated = $this->validateQuotation($request);
+
+        DB::transaction(function () use ($validated, $quotation) {
+            $totals = $this->calculateTotals($validated);
+
+            $quotation->update([
+                'client_id'              => $validated['client_id'] ?? null,
+                'lead_id'                => $validated['lead_id'] ?? null,
+                'project_id'             => $validated['project_id'] ?? null,
+                'subject'                => $validated['subject'],
+                'service_group'          => $validated['service_group'] ?? null,
+                'service_type'           => $validated['service_type'] ?? null,
+                'document_date'          => $validated['document_date'] ?? $quotation->document_date,
+                'valid_until'            => $validated['valid_until'] ?? null,
+                'discount_type'          => $validated['discount_type'],
+                'discount_value'         => $validated['discount_value'] ?? 0,
+                'discount_amount'        => $totals['discount_amount'],
+                'vat_pct'                => $validated['vat_pct'] ?? 0,
+                'subtotal'               => $totals['subtotal'],
+                'vat_amount'             => $totals['vat_amount'],
+                'transportation_amount'  => $totals['transportation_amount'],
+                'supervision_pct'        => $validated['supervision_pct'] ?? 0,
+                'supervision_amount'     => $totals['supervision_amount'],
+                'grand_total'            => $totals['grand_total'],
+                'terms'                  => $validated['terms'] ?? null,
+                'notes'                  => $validated['notes'] ?? null,
+            ]);
+
+            $this->syncItems($quotation, $validated['items']);
+        });
+
+        return redirect()->route('quotations.show', $quotation)->with('success', 'Quotation updated.');
+    }
+
+    private function validateQuotation(Request $request): array
+    {
+        return $request->validate([
+            'client_id'             => 'nullable|uuid|exists:clients,id',
+            'lead_id'               => 'nullable|uuid|exists:leads,id',
+            'project_id'            => 'nullable|uuid|exists:projects,id',
+            'subject'               => 'required|string|max:250',
+            'service_group'         => 'nullable|string|max:50',
+            'service_type'          => 'nullable|string|max:100',
+            'document_date'         => 'nullable|date',
+            'valid_until'           => 'nullable|date',
+            'discount_type'         => 'required|in:percentage,fixed',
+            'discount_value'        => 'nullable|numeric|min:0',
+            'vat_pct'               => 'nullable|numeric|min:0|max:100',
+            'transportation_amount' => 'nullable|numeric|min:0',
+            'supervision_pct'       => 'nullable|numeric|min:0|max:100',
+            'terms'                 => 'nullable|string',
+            'notes'                 => 'nullable|string',
+            'items'                 => 'required|array|min:1',
+            'items.*.category'      => 'required|string|max:100',
+            'items.*.description'   => 'required|string',
+            'items.*.unit'          => 'required|string|max:30',
+            'items.*.quantity'      => 'required|numeric|min:0.01',
+            'items.*.unit_rate'     => 'required|numeric|min:0',
+        ]);
+    }
+
+    private function syncItems(Quotation $quotation, array $items): void
+    {
+        $quotation->items()->delete();
+        foreach ($items as $seq => $item) {
+            QuotationItem::create([
+                'quotation_id' => $quotation->id,
+                'category'     => $item['category'],
+                'description'  => $item['description'],
+                'unit'         => $item['unit'],
+                'quantity'     => $item['quantity'],
+                'unit_rate'    => $item['unit_rate'],
+                'total'        => round($item['quantity'] * $item['unit_rate'], 2),
+                'sequence'     => $seq,
+            ]);
+        }
+    }
+
+    public function destroy(Quotation $quotation): RedirectResponse
+    {
+        $quotation->delete();
+        return redirect()->route('quotations.index')->with('success', 'Quotation deleted.');
+    }
+
+    /** Mark as Sent */
+    public function markSent(Quotation $quotation): RedirectResponse
+    {
+        $quotation->update(['status' => 'sent']);
+        return back()->with('success', 'Quotation marked as sent.');
+    }
+
+    /** Approve */
+    public function approve(Quotation $quotation): RedirectResponse
+    {
+        $quotation->update(['status' => 'approved']);
+        // Update linked lead estimated_value
+        if ($quotation->lead_id) {
+            $quotation->lead->update(['estimated_value' => $quotation->grand_total]);
+        }
+        return back()->with('success', 'Quotation approved.');
+    }
+
+    /** Reject */
+    public function reject(Request $request, Quotation $quotation): RedirectResponse
+    {
+        $quotation->update(['status' => 'rejected']);
+        if ($quotation->lead_id) {
+            $quotation->lead->update(['status' => 'lost', 'lost_reason' => 'Quotation rejected']);
+        }
+        return back()->with('success', 'Quotation rejected.');
+    }
+
+    /** Convert approved quotation to a Project */
+    public function convertToProject(Request $request, Quotation $quotation): RedirectResponse
+    {
+        if ($quotation->status !== 'approved') {
+            return back()->with('error', 'Only approved quotations can be converted to a project.');
+        }
+
+        $request->validate(['project_name' => 'required|string|max:200']);
+
+        DB::transaction(function () use ($request, $quotation) {
+            $codeService = app(CodeGeneratorService::class);
+
+            // Auto-create client from lead if quotation has no client yet
+            $clientId = $quotation->client_id;
+            if (!$clientId && $quotation->lead_id) {
+                $lead = $quotation->lead;
+                if ($lead->client_id) {
+                    $clientId = $lead->client_id;
+                } else {
+                    $client = Client::create([
+                        'code'       => $codeService->generate('CL', 'clients'),
+                        'name'       => $lead->name,
+                        'phone'      => $lead->phone,
+                        'email'      => $lead->email,
+                        'type'       => 'individual',
+                        'created_by' => auth()->id(),
+                    ]);
+                    $clientId = $client->id;
+                    $lead->update(['client_id' => $clientId]);
+                }
+                $quotation->update(['client_id' => $clientId]);
+            }
+
+            $project = Project::create([
+                'code'           => $codeService->generate('PRJ', 'projects'),
+                'name'           => $request->project_name,
+                'client_id'      => $clientId,
+                'lead_id'        => $quotation->lead_id,
+                'type'           => 'residential',
+                'status'         => 'planning',
+                'site_address'   => '',
+                'contract_value' => $quotation->grand_total,
+                'created_by'     => auth()->id(),
+            ]);
+
+            $quotation->update(['status' => 'converted', 'project_id' => $project->id]);
+
+            if ($quotation->lead_id) {
+                $quotation->lead->update([
+                    'status'       => 'won',
+                    'converted_at' => now(),
+                    'client_id'    => $clientId,
+                ]);
+            }
+        });
+
+        return redirect()->route('projects.show', $quotation->fresh()->project_id)
+            ->with('success', 'Project created from quotation!');
+    }
+
+    /** Build a 30-day signed URL that clients can open without logging in */
+    private function buildPublicUrl(Quotation $quotation): string
+    {
+        return URL::temporarySignedRoute(
+            'quotations.public.show',
+            now()->addDays(30),
+            ['quotation' => $quotation->id]
+        );
+    }
+
+    /** Return a fresh signed share link (for WhatsApp / copy-link) */
+    public function shareLink(Quotation $quotation)
+    {
+        return response()->json(['url' => $this->buildPublicUrl($quotation)]);
+    }
+
+    /** Centralized company/view payload used by PDF + public view + mail */
+    private function buildViewPayload(Quotation $quotation, bool $isPdf): array
+    {
+        $logoPath = Setting::get('company_logo');
+        $logoSrc = null;
+        if ($logoPath) {
+            if ($isPdf) {
+                $abs = storage_path('app/public/' . $logoPath);
+                if (is_file($abs)) {
+                    $logoSrc = 'data:image/' . pathinfo($abs, PATHINFO_EXTENSION) . ';base64,' . base64_encode(file_get_contents($abs));
+                }
+            } else {
+                $logoSrc = asset('storage/' . $logoPath);
+            }
+        }
+
+        return [
+            'quotation'          => $quotation,
+            'companyName'        => Setting::get('company_name', 'Interior Villa'),
+            'companyTagline'     => Setting::get('company_tagline', 'Build Your Dream'),
+            'companyEmail'       => Setting::get('company_email'),
+            'companyPhone'       => Setting::get('company_phone'),
+            'companyPhone2'      => Setting::get('company_phone2'),
+            'companyAddress'     => Setting::get('company_address'),
+            'companyCeoName'     => Setting::get('company_ceo_name'),
+            'companyCeoTitle'    => Setting::get('company_ceo_title', 'CEO'),
+            'companyLogo'        => $logoSrc,
+            'grandTotalInWords'  => NumberToWords::toBdt((float) $quotation->grand_total),
+            'isPdf'              => $isPdf,
+        ];
+    }
+
+    /** Download the quotation as PDF (reuses the public blade) */
+    public function downloadPdf(Quotation $quotation)
+    {
+        $quotation->load(['client', 'lead', 'items', 'createdBy']);
+
+        $pdf = Pdf::loadView('quotations.public.show', $this->buildViewPayload($quotation, true))
+            ->setPaper('a4');
+
+        return $pdf->download("Quotation-{$quotation->code}.pdf");
+    }
+
+    /** Public read-only view — opened via signed URL from email/WhatsApp */
+    public function showPublic(Quotation $quotation)
+    {
+        $quotation->load(['client', 'lead', 'items', 'createdBy']);
+
+        return view('quotations.public.show', array_merge(
+            $this->buildViewPayload($quotation, false),
+            ['pdfUrl' => URL::temporarySignedRoute('quotations.public.pdf', now()->addDays(30), ['quotation' => $quotation->id])]
+        ));
+    }
+
+    /** Send quotation by email to the client */
+    public function sendEmail(Request $request, Quotation $quotation): RedirectResponse
+    {
+        $validated = $request->validate([
+            'to'             => 'required|string',
+            'cc'             => 'nullable|string',
+            'custom_message' => 'nullable|string|max:2000',
+        ]);
+
+        $parseEmails = function (?string $raw): array {
+            if (!$raw) return [];
+            return collect(preg_split('/[\s,;]+/', $raw))
+                ->map(fn($e) => trim($e))
+                ->filter(fn($e) => $e !== '' && filter_var($e, FILTER_VALIDATE_EMAIL))
+                ->values()
+                ->all();
+        };
+
+        $toList = $parseEmails($validated['to']);
+        $ccList = $parseEmails($validated['cc'] ?? null);
+
+        if (empty($toList)) {
+            return back()->withErrors(['to' => 'Please provide at least one valid email address.'])->withInput();
+        }
+
+        $publicUrl = $this->buildPublicUrl($quotation);
+        $mail = new QuotationMail($quotation, $publicUrl, $validated['custom_message'] ?? '');
+
+        $mailer = Mail::to($toList);
+        if (!empty($ccList)) {
+            $mailer->cc($ccList);
+        }
+        $mailer->send($mail);
+
+        // Auto-mark as sent if still draft
+        if ($quotation->status === 'draft') {
+            $quotation->update(['status' => 'sent']);
+        }
+
+        return back()->with('success', 'Quotation emailed to ' . implode(', ', $toList) . '.');
+    }
+
+    private function calculateTotals(array $data): array
+    {
+        $subtotal = (float) collect($data['items'])->sum(fn ($i) => $i['quantity'] * $i['unit_rate']);
+
+        $discountValue  = (float) ($data['discount_value'] ?? 0);
+        $discountAmount = ($data['discount_type'] ?? 'percentage') === 'percentage'
+            ? round($subtotal * $discountValue / 100, 2)
+            : min($discountValue, $subtotal);
+
+        $afterDiscount = $subtotal - $discountAmount;
+
+        $vatPct    = (float) ($data['vat_pct'] ?? 0);
+        $vatAmount = round($afterDiscount * $vatPct / 100, 2);
+
+        $transportation = (float) ($data['transportation_amount'] ?? 0);
+
+        // Supervision % applies on items subtotal + transportation (labour overhead
+        // on work-in-scope). Excludes VAT to keep it predictable.
+        $supervisionPct    = (float) ($data['supervision_pct'] ?? 0);
+        $supervisionBase   = $afterDiscount + $transportation;
+        $supervisionAmount = round($supervisionBase * $supervisionPct / 100, 2);
+
+        $grandTotal = $afterDiscount + $transportation + $supervisionAmount + $vatAmount;
+
+        return [
+            'subtotal'              => round($subtotal, 2),
+            'discount_amount'       => $discountAmount,
+            'vat_amount'            => $vatAmount,
+            'transportation_amount' => round($transportation, 2),
+            'supervision_amount'    => $supervisionAmount,
+            'grand_total'           => round($grandTotal, 2),
+        ];
+    }
+}

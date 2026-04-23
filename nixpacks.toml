@@ -36,9 +36,12 @@ cmds = [
 ]
 
 # Start command runs every time the container boots:
-#   1. migrate  — idempotent, safe on every restart
-#   2. storage:link — creates public/storage symlink (no-op if already exists)
-#   3. cache configs/routes/views for speed
-#   4. exec the PHP server so signals propagate properly on Coolify restarts
+#   1. migrate             — idempotent, safe on every restart
+#   2. storage:link        — creates public/storage symlink (no-op if already exists)
+#   3. permission:cache-reset — Spatie's role/permission cache can go stale after
+#                               config:cache; resetting on boot prevents empty-menu
+#                               bugs after redeploys.
+#   4. cache configs/routes/views for speed
+#   5. exec the PHP server so signals propagate properly on Coolify restarts
 [start]
-cmd = "php artisan migrate --force && (php artisan storage:link 2>/dev/null || true) && php artisan config:cache && php artisan route:cache && php artisan view:cache && exec php artisan serve --host=0.0.0.0 --port=${PORT:-8000}"
+cmd = "php artisan migrate --force && (php artisan storage:link 2>/dev/null || true) && php artisan permission:cache-reset && php artisan config:cache && php artisan route:cache && php artisan view:cache && exec php artisan serve --host=0.0.0.0 --port=${PORT:-8000}"

@@ -144,14 +144,14 @@ function NavItem({ group, currentPath, onNavigate }) {
         <div>
             <button
                 onClick={() => setOpen(!open)}
-                className={`w-full sidebar-link ${isGroupActive ? 'text-gray-200 font-medium' : ''}`}
+                className={`w-full sidebar-link ${isGroupActive ? 'text-white font-semibold' : ''}`}
             >
                 <group.icon className="h-[18px] w-[18px] flex-shrink-0" />
                 <span className="flex-1 text-left">{group.name}</span>
                 <ChevronRightIcon className={`h-3.5 w-3.5 transition-transform duration-200 ${open ? 'rotate-90' : ''}`} />
             </button>
             <div className={`overflow-hidden transition-all duration-200 ${open ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}>
-                <div className="ml-4 pl-4 mt-1 mb-1 space-y-0.5 border-l border-white/10">
+                <div className="ml-4 pl-4 mt-1 mb-1 space-y-0.5 border-l border-white/20">
                     {group.children?.map(child => {
                         const matches = currentPath === child.href || currentPath.startsWith(child.href + '/');
                         const hasBetterMatch = matches && group.children.some(

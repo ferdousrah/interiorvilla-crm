@@ -134,9 +134,9 @@
         @apply text-gray-300 flex flex-col;
     }
     .sidebar-link {
-        @apply flex items-center gap-3 px-3 py-2 text-sm rounded-lg
-               transition-all duration-150 text-gray-400
-               hover:bg-white/5 hover:text-gray-200;
+        @apply flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg
+               transition-all duration-150 text-gray-100
+               hover:bg-white/10 hover:text-white;
     }
     .sidebar-link > svg,
     .sidebar-link > .nav-icon {
@@ -147,35 +147,35 @@
         transform: scale(1.18) rotate(-6deg);
     }
     .sidebar-link-active {
-        @apply sidebar-link bg-primary-600/15 text-primary-400 font-medium
+        @apply sidebar-link bg-primary-600/25 text-primary-200 font-semibold
                shadow-sm;
     }
     .sidebar-link-active > svg,
     .sidebar-link-active > .nav-icon {
-        @apply text-primary-400;
+        @apply text-primary-200;
         animation: icon-bounce 0.4s ease-out;
     }
     .sidebar-child {
         @apply block px-3 py-1.5 text-sm rounded-md
-               transition-all duration-150 text-gray-500
-               hover:bg-white/5 hover:text-gray-300;
+               transition-all duration-150 text-gray-200
+               hover:bg-white/10 hover:text-white;
     }
     .sidebar-child-active {
-        @apply sidebar-child bg-primary-600/10 text-primary-400 font-medium;
+        @apply sidebar-child bg-primary-600/20 text-primary-200 font-semibold;
     }
 
     /* Light sidebar overrides */
     .sidebar-light-mode .sidebar-link {
-        @apply text-gray-600 hover:bg-gray-100 hover:text-gray-900;
+        @apply text-gray-800 hover:bg-gray-100 hover:text-gray-900;
     }
     .sidebar-light-mode .sidebar-link-active {
-        @apply bg-primary-50 text-primary-700 font-medium;
+        @apply bg-primary-100 text-primary-800 font-semibold;
     }
     .sidebar-light-mode .sidebar-child {
-        @apply text-gray-500 hover:bg-gray-100 hover:text-gray-800;
+        @apply text-gray-700 hover:bg-gray-100 hover:text-gray-900;
     }
     .sidebar-light-mode .sidebar-child-active {
-        @apply bg-primary-50 text-primary-700 font-medium;
+        @apply bg-primary-100 text-primary-800 font-semibold;
     }
 
     /* ── Topbar ───────────────────────────────── */

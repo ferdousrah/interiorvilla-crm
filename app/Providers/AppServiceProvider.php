@@ -21,6 +21,7 @@ use App\Policies\VendorPolicy;
 use App\Services\CodeGeneratorService;
 use App\Services\AccountingService;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -33,6 +34,14 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        // Force HTTPS on all Laravel-generated URLs in production, so assets
+        // served through Vite don't hit mixed-content blocks behind Coolify's
+        // reverse proxy.
+        if ($this->app->environment('production')) {
+            URL::forceScheme('https');
+            $this->app['request']->server->set('HTTPS', 'on');
+        }
+
         Gate::policy(Client::class, ClientPolicy::class);
         Gate::policy(Lead::class, LeadPolicy::class);
         Gate::policy(Project::class, ProjectPolicy::class);

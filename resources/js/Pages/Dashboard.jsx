@@ -395,7 +395,7 @@ export default function Dashboard({
                                     <div className="flex-1 min-w-0">
                                         <p className="text-sm font-semibold text-gray-900 truncate group-hover:text-primary-700 transition-colors">{project.name}</p>
                                         <p className="text-xs text-gray-600 font-medium truncate mt-0.5">
-                                            {project.client?.name}{project.projectManager?.name && ` · ${project.projectManager.name}`}
+                                            {project.client?.name}{project.siteEngineer?.name && ` · ${project.siteEngineer.name}`}
                                         </p>
                                     </div>
                                     <div className="text-right flex-shrink-0 space-y-1">

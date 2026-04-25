@@ -97,7 +97,7 @@ class ClientController extends Controller
 
         $client->load([
             'contacts',
-            'projects.projectManager',
+            'projects.siteEngineer',
             'invoices',
             'receipts',
             'leads.activities',

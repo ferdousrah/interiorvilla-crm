@@ -72,7 +72,7 @@ class DashboardController extends Controller
             ->get();
 
         // ── Projects ─────────────────────────────
-        $recentProjects = Project::with(['client', 'projectManager'])
+        $recentProjects = Project::with(['client', 'siteEngineer'])
             ->whereNotIn('status', ['completed', 'cancelled'])
             ->orderByDesc('created_at')
             ->limit(5)

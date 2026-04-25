@@ -28,13 +28,20 @@ class RoleController extends Controller
             'CRM' => [
                 'icon' => '🎯',
                 'submenus' => [
-                    'Leads'      => ['view.leads', 'create.leads', 'edit.leads', 'delete.leads'],
+                    'Leads' => ['view.leads', 'create.leads', 'edit.leads', 'delete.leads', 'assign.leads'],
                 ],
             ],
             'Clients' => [
                 'icon' => '👥',
                 'submenus' => [
                     'Clients' => ['view.clients', 'create.clients', 'edit.clients', 'delete.clients'],
+                ],
+            ],
+            'Sales' => [
+                'icon' => '💼',
+                'submenus' => [
+                    'Cost Estimations' => ['create.cost_estimations'],
+                    'Quotations'       => ['create.quotations'],
                 ],
             ],
             'Projects' => [
@@ -63,6 +70,7 @@ class RoleController extends Controller
                     'Accounts' => ['view.accounts'],
                     'Invoices' => ['create.invoices'],
                     'Payments' => ['record.payments'],
+                    'Expenses' => ['submit.expenses', 'approve.expenses'],
                     'Reports'  => ['view.reports'],
                 ],
             ],

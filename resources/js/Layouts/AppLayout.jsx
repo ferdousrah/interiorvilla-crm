@@ -38,7 +38,7 @@ const navGroups = [
     },
     { name: 'Clients', href: '/clients', icon: UsersIcon, permission: 'view.clients', single: true },
     {
-        name: 'Sales', icon: ReceiptPercentIcon, permission: 'view.quotations',
+        name: 'Sales', icon: ReceiptPercentIcon, permission: 'create.quotations',
         children: [
             { name: 'Cost Estimations', href: '/cost-estimations' },
             { name: 'Quotations', href: '/quotations' },

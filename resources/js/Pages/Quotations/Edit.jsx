@@ -1,8 +1,11 @@
 import { Head, useForm } from '@inertiajs/react';
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import axios from 'axios';
 import AppLayout from '@/Layouts/AppLayout';
 import PageHeader from '@/Components/PageHeader';
 import FormField from '@/Components/FormField';
+import Modal from '@/Components/Modal';
+import MaterialPicker from '@/Components/MaterialPicker';
 import { PlusIcon, TrashIcon, PlusCircleIcon } from '@heroicons/react/24/outline';
 
 const DEFAULT_CATEGORIES = [
@@ -18,7 +21,7 @@ function fmt(n) {
 }
 
 function newItem(category = '') {
-    return { category, description: '', unit: 'sft', quantity: '', unit_rate: '', _key: Math.random() };
+    return { material_id: '', category, description: '', unit: 'sft', quantity: '', unit_rate: '', _key: Math.random() };
 }
 
 export default function QuotationEdit({ quotation, clients, leads, projects, serviceCategories = {} }) {
@@ -39,6 +42,7 @@ export default function QuotationEdit({ quotation, clients, leads, projects, ser
         terms:                 quotation.terms ?? '',
         notes:                 quotation.notes ?? '',
         items: (quotation.items ?? []).map(i => ({
+            material_id: '',
             category:    i.category,
             description: i.description,
             unit:        i.unit,
@@ -47,6 +51,39 @@ export default function QuotationEdit({ quotation, clients, leads, projects, ser
             _key:        Math.random(),
         })),
     });
+
+    // ── Materials picker (filtered by selected service type) ──
+    const [availableMaterials, setAvailableMaterials] = useState([]);
+
+    useEffect(() => {
+        if (!data.service_group || !data.service_type) {
+            setAvailableMaterials([]);
+            return;
+        }
+        axios.get('/api/materials', {
+            params: { group: data.service_group, type: data.service_type },
+        })
+            .then(r => setAvailableMaterials(r.data || []))
+            .catch(() => setAvailableMaterials([]));
+    }, [data.service_group, data.service_type]);
+
+    function selectMaterialForItem(idx, materialId) {
+        if (!materialId) {
+            updateItem(idx, 'material_id', '');
+            return;
+        }
+        const mat = availableMaterials.find(m => m.id === materialId);
+        if (!mat) return;
+        const items = [...data.items];
+        items[idx] = {
+            ...items[idx],
+            material_id:  mat.id,
+            description:  mat.description || mat.name,
+            unit:         mat.unit || items[idx].unit,
+            unit_rate:    mat.default_rate != null ? String(mat.default_rate) : items[idx].unit_rate,
+        };
+        setData('items', items);
+    }
 
     const serviceGroups = Object.keys(serviceCategories);
     const serviceTypes  = data.service_group ? (serviceCategories[data.service_group] ?? []) : [];
@@ -103,9 +140,19 @@ export default function QuotationEdit({ quotation, clients, leads, projects, ser
     }
     function addItem(category) { setData('items', [...data.items, newItem(category)]); }
     function removeItem(idx) { setData('items', data.items.filter((_, i) => i !== idx)); }
-    function addCategory() {
-        const name = prompt('Category name:');
-        if (name?.trim()) setData('items', [...data.items, newItem(name.trim())]);
+    // ── Add-Category modal ───────────────────────────────────
+    const [categoryModal, setCategoryModal] = useState({ open: false, value: '' });
+
+    function openCategoryModal() {
+        setCategoryModal({ open: true, value: '' });
+    }
+
+    function confirmAddCategory(e) {
+        e?.preventDefault();
+        const name = categoryModal.value.trim();
+        if (!name) return;
+        setData('items', [...data.items, newItem(name)]);
+        setCategoryModal({ open: false, value: '' });
     }
 
     function submit(e) {
@@ -174,7 +221,7 @@ export default function QuotationEdit({ quotation, clients, leads, projects, ser
                 <div className="card p-6">
                     <div className="flex items-center justify-between mb-4">
                         <h3 className="text-sm font-semibold text-gray-700">Bill of Quantities</h3>
-                        <button type="button" onClick={addCategory} className="btn btn-secondary text-sm flex items-center gap-1.5">
+                        <button type="button" onClick={openCategoryModal} className="btn btn-secondary text-sm flex items-center gap-1.5">
                             <PlusCircleIcon className="w-4 h-4" /> Add Category
                         </button>
                     </div>
@@ -195,12 +242,13 @@ export default function QuotationEdit({ quotation, clients, leads, projects, ser
                                 </div>
                                 <table className="w-full text-sm">
                                     <thead>
-                                        <tr className="text-xs text-gray-400 uppercase bg-white border-b border-gray-100">
-                                            <th className="px-3 py-2 text-left w-1/2">Description</th>
-                                            <th className="px-3 py-2 text-left w-20">Unit</th>
+                                        <tr className="text-xs text-gray-500 uppercase font-semibold bg-white border-b border-gray-100">
+                                            <th className="px-3 py-2 text-left w-40">Item</th>
+                                            <th className="px-3 py-2 text-left">Description</th>
+                                            <th className="px-3 py-2 text-left w-24">Unit</th>
                                             <th className="px-3 py-2 text-right w-24">Qty</th>
-                                            <th className="px-3 py-2 text-right w-28">Rate</th>
-                                            <th className="px-3 py-2 text-right w-28">Amount</th>
+                                            <th className="px-3 py-2 text-right w-32">Rate</th>
+                                            <th className="px-3 py-2 text-right w-32">Amount</th>
                                             <th className="px-3 py-2 w-8" />
                                         </tr>
                                     </thead>
@@ -210,24 +258,39 @@ export default function QuotationEdit({ quotation, clients, leads, projects, ser
                                             return (
                                                 <tr key={item._key} className="hover:bg-gray-50/50 group">
                                                     <td className="px-3 py-2 align-top">
+                                                        <MaterialPicker
+                                                            materials={availableMaterials}
+                                                            value={item.material_id}
+                                                            onChange={(id) => selectMaterialForItem(item._idx, id)}
+                                                            disabled={!data.service_type}
+                                                            placeholders={{
+                                                                disabled: 'Pick service type first',
+                                                                empty: 'No materials for this service',
+                                                                active: 'Search items…',
+                                                            }}
+                                                        />
+                                                    </td>
+                                                    <td className="px-3 py-2 align-top">
                                                         <textarea className="form-input text-xs w-full leading-snug" rows={2}
                                                             value={item.description}
-                                                            onChange={e => updateItem(item._idx, 'description', e.target.value)} required />
+                                                            onChange={e => updateItem(item._idx, 'description', e.target.value)}
+                                                            placeholder="Pick an item above, or type a custom description"
+                                                            required />
                                                     </td>
                                                     <td className="px-3 py-2">
-                                                        <input className="form-input text-xs" list="units-list" value={item.unit}
+                                                        <input className="form-input text-sm w-full font-medium" list="units-list" value={item.unit}
                                                             onChange={e => updateItem(item._idx, 'unit', e.target.value)} />
                                                     </td>
                                                     <td className="px-3 py-2">
-                                                        <input type="number" min="0" step="0.01" className="form-input text-xs text-right"
+                                                        <input type="number" min="0" step="0.01" className="form-input text-sm w-full text-right font-semibold tabular-nums"
                                                             value={item.quantity} onChange={e => updateItem(item._idx, 'quantity', e.target.value)} required />
                                                     </td>
                                                     <td className="px-3 py-2">
-                                                        <input type="number" min="0" step="0.01" className="form-input text-xs text-right"
+                                                        <input type="number" min="0" step="0.01" className="form-input text-sm w-full text-right font-semibold tabular-nums"
                                                             value={item.unit_rate} onChange={e => updateItem(item._idx, 'unit_rate', e.target.value)} required />
                                                     </td>
-                                                    <td className="px-3 py-2 text-right font-medium text-gray-700">
-                                                        {amt > 0 ? fmt(amt) : <span className="text-gray-300">—</span>}
+                                                    <td className="px-3 py-2 text-right font-bold text-gray-900 tabular-nums">
+                                                        {amt > 0 ? fmt(amt) : <span className="text-gray-300 font-normal">—</span>}
                                                     </td>
                                                     <td className="px-3 py-2">
                                                         <button type="button" onClick={() => removeItem(item._idx)}
@@ -326,6 +389,37 @@ export default function QuotationEdit({ quotation, clients, leads, projects, ser
                     <a href={route('quotations.show', quotation.id)} className="btn">Cancel</a>
                 </div>
             </form>
+
+            {/* Add Category modal */}
+            <Modal open={categoryModal.open} onClose={() => setCategoryModal({ open: false, value: '' })}
+                title="Add Category" size="sm">
+                <form onSubmit={confirmAddCategory} className="p-5 space-y-4">
+                    <div>
+                        <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-2">
+                            Category name
+                        </label>
+                        <input
+                            type="text"
+                            autoFocus
+                            className="form-input w-full text-sm"
+                            placeholder="e.g. Civil Work, False Ceiling, Electrical…"
+                            value={categoryModal.value}
+                            onChange={e => setCategoryModal(s => ({ ...s, value: e.target.value }))}
+                        />
+                        <p className="text-xs text-gray-500 mt-2">
+                            Items added under this category will be grouped together in the BOQ.
+                        </p>
+                    </div>
+                    <div className="flex justify-end gap-2 pt-2">
+                        <button type="button" onClick={() => setCategoryModal({ open: false, value: '' })} className="btn">
+                            Cancel
+                        </button>
+                        <button type="submit" disabled={!categoryModal.value.trim()} className="btn btn-primary">
+                            Add Category
+                        </button>
+                    </div>
+                </form>
+            </Modal>
         </AppLayout>
     );
 }

@@ -15,7 +15,8 @@ class Quotation extends Model
     use HasUuids, SoftDeletes, Auditable;
 
     protected $fillable = [
-        'code', 'client_id', 'lead_id', 'project_id', 'subject', 'service_group', 'service_type',
+        'code', 'revision_no', 'parent_quotation_id',
+        'client_id', 'lead_id', 'project_id', 'subject', 'service_group', 'service_type',
         'status', 'document_date', 'valid_until',
         'subtotal', 'discount_type', 'discount_value', 'discount_amount',
         'vat_pct', 'vat_amount',
@@ -66,6 +67,47 @@ class Quotation extends Model
         return $this->hasMany(QuotationItem::class)->orderBy('sequence');
     }
 
+    public function parent(): BelongsTo
+    {
+        return $this->belongsTo(Quotation::class, 'parent_quotation_id');
+    }
+
+    public function revisions(): HasMany
+    {
+        return $this->hasMany(Quotation::class, 'parent_quotation_id')->orderBy('revision_no');
+    }
+
+    /**
+     * Returns the revision-1 quotation (the original) for this lineage.
+     * If this quotation IS the original, returns itself.
+     */
+    public function rootQuotation(): self
+    {
+        return $this->parent_quotation_id ? $this->parent->rootQuotation() : $this;
+    }
+
+    /**
+     * All revisions in this lineage (including the original), ordered.
+     */
+    public function lineage()
+    {
+        $root = $this->rootQuotation();
+        return self::where('id', $root->id)
+            ->orWhere('parent_quotation_id', $root->id)
+            ->orderBy('revision_no')
+            ->get();
+    }
+
+    /**
+     * Display label like "Q-2026-001" or "Q-2026-001 Rev 02".
+     */
+    public function getDisplayCodeAttribute(): string
+    {
+        return $this->revision_no > 1
+            ? sprintf('%s Rev %02d', $this->code, $this->revision_no)
+            : $this->code;
+    }
+
     /**
      * Prevent the `createdBy` relation from overwriting the `created_by` FK
      * column during JSON serialization. Expose the loaded relation under the
@@ -79,6 +121,8 @@ class Quotation extends Model
             $array['created_by'] = $this->getAttribute('created_by');
             $array['createdBy']  = $this->createdBy?->toArray();
         }
+
+        $array['display_code'] = $this->display_code;
 
         return $array;
     }

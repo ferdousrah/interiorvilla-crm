@@ -29,7 +29,7 @@ const DEFAULT_TERMS = `1. This quotation is valid for 30 days from the date of i
 6. All disputes subject to local jurisdiction.`;
 
 function newItem(category = '') {
-    return { material_id: '', category, description: '', unit: 'sft', quantity: '', unit_rate: '', _key: Math.random() };
+    return { material_id: '', category, item_name: '', description: '', unit: 'sft', quantity: '', unit_rate: '', _key: Math.random() };
 }
 
 function fmt(n) {
@@ -183,7 +183,8 @@ export default function QuotationCreate({ clients, leads, projects, serviceCateg
         items[idx] = {
             ...items[idx],
             material_id:  mat.id,
-            description:  mat.description || mat.name,
+            item_name:    mat.name || items[idx].item_name,
+            description:  mat.description || items[idx].description,
             unit:         mat.unit || items[idx].unit,
             unit_rate:    mat.default_rate != null ? String(mat.default_rate) : items[idx].unit_rate,
         };
@@ -383,14 +384,23 @@ export default function QuotationCreate({ clients, leads, projects, serviceCateg
                                                         />
                                                     </td>
                                                     <td className="px-3 py-2 align-top">
-                                                        <textarea
-                                                            className="form-input text-xs w-full leading-snug"
-                                                            rows={2}
-                                                            value={item.description}
-                                                            onChange={e => updateItem(item._idx, 'description', e.target.value)}
-                                                            placeholder="Pick an item above, or type a custom description"
-                                                            required
-                                                        />
+                                                        <div className="space-y-1">
+                                                            <input
+                                                                type="text"
+                                                                className="form-input text-sm w-full font-bold leading-tight"
+                                                                value={item.item_name}
+                                                                onChange={e => updateItem(item._idx, 'item_name', e.target.value)}
+                                                                placeholder="Item name (bold heading shown to client)"
+                                                            />
+                                                            <textarea
+                                                                className="form-input text-xs w-full leading-snug"
+                                                                rows={2}
+                                                                value={item.description}
+                                                                onChange={e => updateItem(item._idx, 'description', e.target.value)}
+                                                                placeholder="Full specification — shown below the item name"
+                                                                required
+                                                            />
+                                                        </div>
                                                     </td>
                                                     <td className="px-3 py-2">
                                                         <input

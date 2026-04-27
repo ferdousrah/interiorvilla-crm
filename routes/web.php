@@ -133,6 +133,7 @@ Route::middleware('auth')->group(function () {
         Route::patch('quotations/{quotation}/send', [QuotationController::class, 'markSent'])->name('quotations.send');
         Route::patch('quotations/{quotation}/approve', [QuotationController::class, 'approve'])->name('quotations.approve');
         Route::patch('quotations/{quotation}/reject', [QuotationController::class, 'reject'])->name('quotations.reject');
+        Route::post('quotations/{quotation}/revise', [QuotationController::class, 'revise'])->name('quotations.revise');
         Route::post('quotations/{quotation}/convert-to-project', [QuotationController::class, 'convertToProject'])->name('quotations.convert');
         Route::post('quotations/{quotation}/send-email', [QuotationController::class, 'sendEmail'])->name('quotations.send-email');
         Route::get('quotations/{quotation}/share-link', [QuotationController::class, 'shareLink'])->name('quotations.share-link');
@@ -222,6 +223,8 @@ Route::middleware('auth')->group(function () {
             Route::put('general', [SettingController::class, 'update'])->name('general.update');
             Route::post('general/logo', [SettingController::class, 'uploadLogo'])->name('general.logo');
             Route::delete('general/logo', [SettingController::class, 'removeLogo'])->name('general.logo.remove');
+            Route::post('general/signature', [SettingController::class, 'uploadSignature'])->name('general.signature');
+            Route::delete('general/signature', [SettingController::class, 'removeSignature'])->name('general.signature.remove');
             Route::resource('users', UserController::class);
             Route::patch('users/{user}/activate', [UserController::class, 'toggleActive'])->name('users.activate');
             Route::post('users/{user}/reset-password', [UserController::class, 'resetPassword'])->name('users.reset-password');

@@ -7,6 +7,7 @@ const SOURCES = ['referral', 'facebook', 'instagram', 'website', 'walk_in', 'col
 
 export default function LeadCreate({ users = [], serviceCategories = {}, canAssign = false }) {
     const { data, setData, post, processing, errors } = useForm({
+        type: 'individual', company_name: '',
         name: '', phone: '', email: '', address: '', source: 'referral',
         service_group: '', service_type: '', estimated_value: '',
         assigned_to: '', follow_up_at: '', notes: '',
@@ -25,9 +26,33 @@ export default function LeadCreate({ users = [], serviceCategories = {}, canAssi
             <PageHeader title="New Lead" back={route('crm.index')} />
             <div className="p-4 sm:p-6 max-w-2xl mx-auto">
                 <form onSubmit={submit} className="card p-6 space-y-4">
+                    {/* Type toggle */}
+                    <div className="inline-flex p-1 rounded-lg bg-gray-100 text-sm">
+                        {['individual', 'corporate'].map(t => (
+                            <button
+                                key={t}
+                                type="button"
+                                onClick={() => setData('type', t)}
+                                className={`px-4 py-1.5 rounded-md font-semibold capitalize transition-colors ${
+                                    data.type === t ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                                }`}
+                            >
+                                {t}
+                            </button>
+                        ))}
+                    </div>
+
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <FormField label="Full Name" error={errors.name} required>
-                            <input className="form-input" value={data.name} onChange={e => setData('name', e.target.value)} placeholder="Client name" />
+                        {data.type === 'corporate' && (
+                            <FormField label="Company Name" error={errors.company_name} required className="sm:col-span-2">
+                                <input className="form-input" value={data.company_name}
+                                    onChange={e => setData('company_name', e.target.value)}
+                                    placeholder="e.g. Richmond Group Ltd." />
+                            </FormField>
+                        )}
+                        <FormField label={data.type === 'corporate' ? 'Contact Person Name' : 'Full Name'} error={errors.name} required>
+                            <input className="form-input" value={data.name} onChange={e => setData('name', e.target.value)}
+                                placeholder={data.type === 'corporate' ? 'Person to contact' : 'Client name'} />
                         </FormField>
                         <FormField label="Phone" error={errors.phone} required>
                             <input className="form-input" value={data.phone} onChange={e => setData('phone', e.target.value)} placeholder="+880..." />

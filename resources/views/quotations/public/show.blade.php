@@ -11,8 +11,8 @@
             font-family: 'DejaVu Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: #f3f4f6;
             color: #1f2937;
-            font-size: 11.5px;
-            line-height: 1.45;
+            font-size: 13.5px;
+            line-height: 1.5;
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
         }
@@ -27,92 +27,96 @@
         /* PDF overrides — flatten the card, tighten margins */
         @if($isPdf ?? false)
         @page { margin: 12mm 10mm; }
-        body { background: #fff; font-size: 10.5px; line-height: 1.4; }
+        body { background: #fff; font-size: 12.5px; line-height: 1.45; }
         .wrap { max-width: 100%; padding: 0; margin: 0; }
         .sheet { box-shadow: none; border-radius: 0; padding: 0; }
         @endif
 
         /* ========== HEADER ========== */
-        .hdr { width: 100%; border-collapse: collapse; margin-bottom: 14px; }
+        .hdr { width: 100%; border-collapse: collapse; margin-bottom: 16px; }
         .hdr td { vertical-align: top; padding: 0; }
-        .hdr .date-block { font-size: 12px; }
+        .hdr .date-block { font-size: 14px; }
         .hdr .date-block .date { font-weight: 600; color: #1f2937; }
         .hdr .logo-block { text-align: right; }
-        .hdr .logo-block img { max-height: 62px; max-width: 190px; display: inline-block; }
-        .hdr .lh-name { font-size: 15px; font-weight: 700; color: #111827; margin: 4px 0 0; }
-        .hdr .lh-tagline { font-size: 9px; letter-spacing: 2px; color: #059669; margin: 2px 0 0; text-transform: uppercase; }
+        .hdr .logo-block img { max-height: 80px; max-width: 260px; display: inline-block; }
+        .hdr .lh-name { font-size: 17px; font-weight: 700; color: #111827; margin: 4px 0 0; }
+        .hdr .lh-tagline { font-size: 10px; letter-spacing: 2px; color: #059669; margin: 2px 0 0; text-transform: uppercase; }
 
         /* ========== TO BLOCK ========== */
-        .to-block { font-size: 12px; margin-bottom: 14px; line-height: 1.55; }
+        .to-block { font-size: 14px; margin-bottom: 16px; line-height: 1.6; }
         .to-block .lbl { color: #6b7280; }
         .to-block .name { font-weight: 700; color: #111827; }
 
         /* ========== SUBJECT BAR ========== */
         .subject-bar {
             background: #f3f4f6;
-            padding: 8px 12px;
-            font-size: 11.5px;
+            padding: 10px 14px;
+            font-size: 14px;
             font-weight: 700;
             color: #111827;
-            margin-bottom: 12px;
+            margin-bottom: 14px;
             letter-spacing: 0.3px;
         }
         .subject-bar .lbl { margin-right: 8px; }
 
         /* ========== MAIN BOQ TABLE ========== */
-        .boq { width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 6px; }
+        .boq { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 6px; }
         .boq thead th {
             background: #f9fafb;
             color: #374151;
             text-transform: none;
             font-weight: 700;
-            font-size: 11px;
+            font-size: 13px;
             border: 1px solid #d1d5db;
-            padding: 6px 8px;
+            padding: 8px 10px;
             text-align: left;
         }
         .boq thead th.num { text-align: right; }
         .boq thead th.ctr { text-align: center; }
         .boq td {
             border: 1px solid #e5e7eb;
-            padding: 5px 8px;
+            padding: 7px 10px;
             vertical-align: top;
         }
         .boq td.num { text-align: right; white-space: nowrap; }
         .boq td.ctr { text-align: center; }
-        .boq td.idx { color: #6b7280; font-size: 10.5px; width: 38px; text-align: center; }
+        .boq td.idx { color: #6b7280; font-size: 12.5px; width: 42px; text-align: center; }
 
         .boq tr.section-header td {
             background: #eef5eb;
             font-weight: 700;
             color: #1f2937;
-            padding: 7px 8px;
-            font-size: 11.5px;
+            padding: 9px 10px;
+            font-size: 13.5px;
             border-color: #d1d5db;
         }
         .boq tr.item-row td.desc {
-            line-height: 1.45;
+            line-height: 1.55;
             color: #374151;
             white-space: pre-line;
+            font-size: 13px;
         }
         .boq tr.item-row td.desc .title {
             font-weight: 700;
             color: #111827;
             display: block;
-            margin-bottom: 2px;
+            margin-bottom: 3px;
+            font-size: 13.5px;
         }
 
         .boq tr.subtotal-row td {
             background: #fafafa;
             font-weight: 700;
-            padding: 6px 8px;
+            padding: 8px 10px;
+            font-size: 13px;
             border-color: #d1d5db;
         }
         .boq tr.subtotal-row td.label { text-align: center; }
         .boq tr.grandline-row td {
             background: #f3f4f6;
             font-weight: 700;
-            padding: 7px 8px;
+            padding: 9px 10px;
+            font-size: 13px;
         }
         .boq tr.grandline-row td.num { color: #1f2937; }
 
@@ -120,16 +124,16 @@
             background: #111827;
             color: #fff;
             font-weight: 700;
-            padding: 9px 8px;
-            font-size: 12.5px;
+            padding: 11px 10px;
+            font-size: 15px;
             border-color: #111827;
         }
         .boq tr.final-row td.num { color: #fbbf24; }
 
         /* ========== IN WORDS ========== */
         .in-words {
-            margin: 8px 0 14px;
-            font-size: 11px;
+            margin: 10px 0 16px;
+            font-size: 13.5px;
             font-weight: 700;
             color: #1f2937;
         }
@@ -141,40 +145,50 @@
 
         /* ========== TERMS ========== */
         .terms-block {
-            margin: 10px 0 18px;
-            font-size: 11px;
+            margin: 12px 0 20px;
+            font-size: 13px;
             color: #374151;
         }
         .terms-block h4 {
-            font-size: 11.5px;
+            font-size: 13.5px;
             font-weight: 700;
-            margin: 0 0 4px;
+            margin: 0 0 5px;
             color: #1f2937;
             letter-spacing: 0.3px;
         }
-        .terms-block .item { margin: 2px 0; line-height: 1.55; }
+        .terms-block .item { margin: 3px 0; line-height: 1.6; }
 
         /* ========== SIGNATURE ========== */
         .sign-block {
-            margin-top: 24px;
-            font-size: 11px;
+            margin-top: 28px;
+            font-size: 13px;
             color: #1f2937;
         }
         .sign-block .thanks {
-            margin-bottom: 32px;
+            margin-bottom: 6px;
             font-weight: 400;
         }
+        .sign-block .signature-img {
+            display: block;
+            max-height: 70px;
+            max-width: 220px;
+            object-fit: contain;
+            margin: 4px 0 2px;
+        }
+        .sign-block .signature-spacer {
+            height: 60px;
+        }
         .sign-block .name { font-weight: 700; color: #111827; }
-        .sign-block .company { font-weight: 700; color: #111827; font-size: 12px; margin-top: 2px; }
-        .sign-block .meta { color: #4b5563; margin-top: 1px; font-size: 10.5px; }
+        .sign-block .company { font-weight: 700; color: #111827; font-size: 16px; margin-top: 6px; margin-bottom: 4px; }
+        .sign-block .meta { color: #4b5563; margin-top: 2px; font-size: 12.5px; }
 
         .foot-addr {
-            margin-top: 18px;
-            padding-top: 10px;
+            margin-top: 22px;
+            padding-top: 12px;
             border-top: 1px solid #d1d5db;
             text-align: center;
             font-weight: 700;
-            font-size: 11px;
+            font-size: 13px;
             color: #1f2937;
         }
 
@@ -189,7 +203,7 @@
         .btn-outline { border-color: #d1d5db; color: #374151; background: #fff; }
 
         @media print {
-            body { background: #fff; font-size: 10.5px; }
+            body { background: #fff; font-size: 12.5px; }
             .wrap { padding: 0; max-width: 100%; }
             .sheet { box-shadow: none; border-radius: 0; padding: 0; }
             .actions, .no-print { display: none !important; }
@@ -211,29 +225,31 @@
                     <td class="logo-block" style="width:45%;">
                         @if(!empty($companyLogo))
                             <img src="{{ $companyLogo }}" alt="{{ $companyName }}">
-                        @endif
-                        <div class="lh-name">{{ $companyName }}</div>
-                        @if(!empty($companyTagline))
-                            <div class="lh-tagline">{{ $companyTagline }}</div>
+                        @else
+                            <div class="lh-name">{{ $companyName }}</div>
+                            @if(!empty($companyTagline))
+                                <div class="lh-tagline">{{ $companyTagline }}</div>
+                            @endif
                         @endif
                     </td>
                 </tr>
             </table>
 
             {{-- TO BLOCK --}}
-            @php $person = $quotation->client ?? $quotation->lead; @endphp
+            @php
+                $person      = $quotation->client ?? $quotation->lead;
+                $companyName = $quotation->client?->company_name ?? $quotation->lead?->company_name;
+                $contactName = $person?->name;
+            @endphp
             <div class="to-block">
                 <div class="lbl">To</div>
                 @if($person)
-                    <div class="name">{{ $quotation->client->company_name ?? $person->name }}</div>
-                    @if($quotation->client && $quotation->client->company_name && $quotation->client->name)
-                        <div>Attn: {{ $quotation->client->name }}</div>
+                    <div class="name">{{ $companyName ?: $contactName }}</div>
+                    @if($companyName && $contactName)
+                        <div>Attn: {{ $contactName }}</div>
                     @endif
                     @if($person->address)
                         <div>{{ $person->address }}</div>
-                    @endif
-                    @if($person->phone)
-                        <div>{{ $person->phone }}</div>
                     @endif
                 @else
                     <div class="name">Valued Client</div>
@@ -279,7 +295,12 @@
                         @foreach($items as $ii => $item)
                             <tr class="item-row">
                                 <td class="idx">{{ $loop->parent->iteration }}.{{ $ii + 1 }}</td>
-                                <td class="desc">{{ $item->description }}</td>
+                                <td class="desc">
+                                    @if(!empty($item->item_name))
+                                        <span class="title">{{ $item->item_name }}</span>
+                                    @endif
+                                    {{ $item->description }}
+                                </td>
                                 <td class="num">{{ number_format($item->quantity, 2) }}</td>
                                 <td class="ctr">{{ $item->unit }}</td>
                                 <td class="num">{{ number_format($item->unit_rate, 2) }}</td>
@@ -370,14 +391,19 @@
             {{-- SIGNATURE --}}
             <div class="sign-block">
                 <div class="thanks">THANKING YOU</div>
+                @if(!empty($companySignature))
+                    <img src="{{ $companySignature }}" alt="Signature" class="signature-img">
+                @else
+                    <div class="signature-spacer"></div>
+                @endif
                 @if(!empty($companyCeoName))
                     <div class="name">{{ $companyCeoName }}</div>
-                    <div class="meta">{{ $companyCeoTitle ?? 'CEO' }}</div>
+                    <div class="meta">{{ $companyCeoTitle ?: 'CEO' }}</div>
                 @elseif($quotation->createdBy)
                     <div class="name">{{ $quotation->createdBy->name }}</div>
-                    <div class="meta">{{ $companyCeoTitle ?? 'Prepared By' }}</div>
+                    <div class="meta">{{ $companyCeoTitle ?: 'Prepared By' }}</div>
                 @endif
-                <div class="company">{{ $companyName }}</div>
+                <div class="company">{{ $companyName ?: 'Interior Villa' }}</div>
                 @if(!empty($companyPhone))
                     <div class="meta">Cell: {{ $companyPhone }}@if(!empty($companyPhone2)), {{ $companyPhone2 }}@endif</div>
                 @endif

@@ -16,7 +16,7 @@ class Lead extends Model
     use HasFactory, HasUuids, SoftDeletes, Auditable;
 
     protected $fillable = [
-        'code', 'client_id', 'name', 'email', 'phone', 'address', 'source',
+        'code', 'client_id', 'type', 'name', 'company_name', 'email', 'phone', 'address', 'source',
         'project_type', 'service_group', 'service_type', 'estimated_value',
         'status', 'lost_reason', 'follow_up_at', 'assigned_to', 'converted_at',
         'notes', 'created_by',

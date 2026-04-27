@@ -296,7 +296,9 @@ class LeadController extends Controller
         $this->authorize('create', Lead::class);
 
         $validated = $request->validate([
+            'type'            => 'nullable|in:individual,corporate',
             'name'            => 'required|string|max:150',
+            'company_name'    => 'nullable|string|max:150|required_if:type,corporate',
             'phone'           => 'required|string|max:20',
             'email'           => 'nullable|email|max:150',
             'address'         => 'nullable|string|max:500',
@@ -440,7 +442,9 @@ class LeadController extends Controller
         $this->authorize('update', $lead);
 
         $validated = $request->validate([
+            'type'            => 'nullable|in:individual,corporate',
             'name'            => 'required|string|max:150',
+            'company_name'    => 'nullable|string|max:150|required_if:type,corporate',
             'phone'           => 'required|string|max:20',
             'email'           => 'nullable|email|max:150',
             'address'         => 'nullable|string|max:500',
@@ -498,12 +502,14 @@ class LeadController extends Controller
                 if (!$client) {
                     $clientCode = $codeService->generate('CL', 'clients');
                     $client = Client::create([
-                        'code'       => $clientCode,
-                        'name'       => $lead->name,
-                        'phone'      => $lead->phone,
-                        'email'      => $lead->email,
-                        'type'       => 'individual',
-                        'created_by' => auth()->id(),
+                        'code'         => $clientCode,
+                        'type'         => $lead->type ?? 'individual',
+                        'name'         => $lead->name,
+                        'company_name' => $lead->company_name,
+                        'phone'        => $lead->phone,
+                        'email'        => $lead->email,
+                        'address'      => $lead->address,
+                        'created_by'   => auth()->id(),
                     ]);
                     $lead->update(['client_id' => $client->id]);
                 }
@@ -543,12 +549,14 @@ class LeadController extends Controller
         $code = $codeService->generate('CL', 'clients');
 
         $client = Client::create([
-            'code'       => $code,
-            'name'       => $lead->name,
-            'phone'      => $lead->phone,
-            'email'      => $lead->email,
-            'type'       => 'individual',
-            'created_by' => auth()->id(),
+            'code'         => $code,
+            'type'         => $lead->type ?? 'individual',
+            'name'         => $lead->name,
+            'company_name' => $lead->company_name,
+            'phone'        => $lead->phone,
+            'email'        => $lead->email,
+            'address'      => $lead->address,
+            'created_by'   => auth()->id(),
         ]);
 
         $lead->update(['client_id' => $client->id]);

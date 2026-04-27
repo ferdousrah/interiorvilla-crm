@@ -11,7 +11,7 @@ class QuotationItem extends Model
     use HasUuids;
 
     protected $fillable = [
-        'quotation_id', 'category', 'description', 'unit',
+        'quotation_id', 'category', 'item_name', 'description', 'unit',
         'quantity', 'unit_rate', 'total', 'sequence',
     ];
 

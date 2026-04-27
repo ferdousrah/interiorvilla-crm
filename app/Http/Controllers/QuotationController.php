@@ -111,23 +111,43 @@ class QuotationController extends Controller
         $quotation->load(['client', 'lead', 'project', 'items', 'createdBy']);
 
         $logoPath = Setting::get('company_logo');
+        $sigPath  = Setting::get('company_signature');
+
+        // Sibling revisions (only when this quotation has been revised)
+        $lineage = $quotation->lineage()
+            ->map(fn($q) => [
+                'id'           => $q->id,
+                'revision_no'  => $q->revision_no,
+                'display_code' => $q->display_code,
+                'status'       => $q->status,
+                'grand_total'  => (float) $q->grand_total,
+                'created_at'   => $q->created_at?->toIso8601String(),
+                'is_current'   => $q->id === $quotation->id,
+            ])
+            ->values();
 
         return Inertia::render('Quotations/Show', [
             'quotation' => $quotation,
             'company'   => [
-                'name'    => Setting::get('company_name', 'Interior Villa'),
-                'email'   => Setting::get('company_email'),
-                'phone'   => Setting::get('company_phone'),
-                'phone2'  => Setting::get('company_phone2'),
-                'address' => Setting::get('company_address'),
-                'logo'    => $logoPath ? asset('storage/' . $logoPath) : null,
+                'name'      => Setting::get('company_name', 'Interior Villa'),
+                'email'     => Setting::get('company_email'),
+                'phone'     => Setting::get('company_phone'),
+                'phone2'    => Setting::get('company_phone2'),
+                'address'   => Setting::get('company_address'),
+                'logo'      => $logoPath ? asset('storage/' . $logoPath) : null,
+                'signature' => $sigPath  ? asset('storage/' . $sigPath)  : null,
             ],
             'grandTotalInWords' => NumberToWords::toBdt((float) $quotation->grand_total),
+            'lineage'           => $lineage,
         ]);
     }
 
     public function edit(Quotation $quotation): Response
     {
+        if ($quotation->status === 'superseded') {
+            return redirect()->route('quotations.show', $quotation)
+                ->with('error', 'This is an old revision and cannot be edited. Open the latest revision instead.');
+        }
         if (!in_array($quotation->status, ['draft', 'sent', 'under_review'])) {
             return redirect()->route('quotations.show', $quotation)
                 ->with('error', 'Only draft or sent quotations can be edited.');
@@ -200,6 +220,7 @@ class QuotationController extends Controller
             'notes'                 => 'nullable|string',
             'items'                 => 'required|array|min:1',
             'items.*.category'      => 'required|string|max:100',
+            'items.*.item_name'     => 'nullable|string|max:200',
             'items.*.description'   => 'required|string',
             'items.*.unit'          => 'required|string|max:30',
             'items.*.quantity'      => 'required|numeric|min:0.01',
@@ -214,6 +235,7 @@ class QuotationController extends Controller
             QuotationItem::create([
                 'quotation_id' => $quotation->id,
                 'category'     => $item['category'],
+                'item_name'    => $item['item_name'] ?? null,
                 'description'  => $item['description'],
                 'unit'         => $item['unit'],
                 'quantity'     => $item['quantity'],
@@ -228,6 +250,51 @@ class QuotationController extends Controller
     {
         $quotation->delete();
         return redirect()->route('quotations.index')->with('success', 'Quotation deleted.');
+    }
+
+    /**
+     * Create a new revision of a sent/reviewed/rejected quotation.
+     * Marks the source as superseded, clones it (and items) with revision_no + 1,
+     * and redirects to the edit page of the new draft revision.
+     */
+    public function revise(Quotation $quotation): RedirectResponse
+    {
+        if (!in_array($quotation->status, ['sent', 'under_review', 'rejected'])) {
+            return back()->with('error', 'Only sent, under-review, or rejected quotations can be revised.');
+        }
+
+        $newQuotation = DB::transaction(function () use ($quotation) {
+            $quotation->load('items');
+            $root = $quotation->rootQuotation();
+
+            $latestRev = (int) Quotation::where('id', $root->id)
+                ->orWhere('parent_quotation_id', $root->id)
+                ->max('revision_no');
+
+            // Mark the current quotation as superseded
+            $quotation->update(['status' => 'superseded']);
+
+            // Clone the quotation row
+            $new = $quotation->replicate(['status', 'revision_no', 'parent_quotation_id', 'created_by']);
+            $new->code                = $root->code;
+            $new->revision_no         = $latestRev + 1;
+            $new->parent_quotation_id = $root->id;
+            $new->status              = 'draft';
+            $new->created_by          = auth()->id();
+            $new->save();
+
+            // Clone every line item
+            foreach ($quotation->items as $item) {
+                $clone = $item->replicate();
+                $clone->quotation_id = $new->id;
+                $clone->save();
+            }
+
+            return $new;
+        });
+
+        return redirect()->route('quotations.edit', $newQuotation)
+            ->with('success', "Revision created (Rev " . sprintf('%02d', $newQuotation->revision_no) . "). Edit and re-send when ready.");
     }
 
     /** Mark as Sent */
@@ -278,12 +345,14 @@ class QuotationController extends Controller
                     $clientId = $lead->client_id;
                 } else {
                     $client = Client::create([
-                        'code'       => $codeService->generate('CL', 'clients'),
-                        'name'       => $lead->name,
-                        'phone'      => $lead->phone,
-                        'email'      => $lead->email,
-                        'type'       => 'individual',
-                        'created_by' => auth()->id(),
+                        'code'         => $codeService->generate('CL', 'clients'),
+                        'type'         => $lead->type ?? 'individual',
+                        'name'         => $lead->name,
+                        'company_name' => $lead->company_name,
+                        'phone'        => $lead->phone,
+                        'email'        => $lead->email,
+                        'address'      => $lead->address,
+                        'created_by'   => auth()->id(),
                     ]);
                     $clientId = $client->id;
                     $lead->update(['client_id' => $clientId]);
@@ -337,18 +406,17 @@ class QuotationController extends Controller
     /** Centralized company/view payload used by PDF + public view + mail */
     private function buildViewPayload(Quotation $quotation, bool $isPdf): array
     {
-        $logoPath = Setting::get('company_logo');
-        $logoSrc = null;
-        if ($logoPath) {
+        $resolveImage = function (?string $path) use ($isPdf): ?string {
+            if (!$path) return null;
             if ($isPdf) {
-                $abs = storage_path('app/public/' . $logoPath);
+                $abs = storage_path('app/public/' . $path);
                 if (is_file($abs)) {
-                    $logoSrc = 'data:image/' . pathinfo($abs, PATHINFO_EXTENSION) . ';base64,' . base64_encode(file_get_contents($abs));
+                    return 'data:image/' . pathinfo($abs, PATHINFO_EXTENSION) . ';base64,' . base64_encode(file_get_contents($abs));
                 }
-            } else {
-                $logoSrc = asset('storage/' . $logoPath);
+                return null;
             }
-        }
+            return asset('storage/' . $path);
+        };
 
         return [
             'quotation'          => $quotation,
@@ -360,7 +428,8 @@ class QuotationController extends Controller
             'companyAddress'     => Setting::get('company_address'),
             'companyCeoName'     => Setting::get('company_ceo_name'),
             'companyCeoTitle'    => Setting::get('company_ceo_title', 'CEO'),
-            'companyLogo'        => $logoSrc,
+            'companyLogo'        => $resolveImage(Setting::get('company_logo')),
+            'companySignature'   => $resolveImage(Setting::get('company_signature')),
             'grandTotalInWords'  => NumberToWords::toBdt((float) $quotation->grand_total),
             'isPdf'              => $isPdf,
         ];

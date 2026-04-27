@@ -92,7 +92,7 @@ export default function QuotationsIndex({ quotations, filters }) {
                                 <tr key={q.id} className="hover:bg-gray-50 cursor-pointer"
                                     onClick={() => router.get(route('quotations.show', q.id))}>
                                     <td className="px-4 py-3">
-                                        <p className="font-medium text-gray-900">{q.code}</p>
+                                        <p className="font-medium text-gray-900">{q.display_code || q.code}</p>
                                         {q.project && <p className="text-xs text-gray-400">{q.project.name}</p>}
                                     </td>
                                     <td className="px-4 py-3 text-gray-700">{q.client?.name}</td>

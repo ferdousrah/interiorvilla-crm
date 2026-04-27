@@ -82,4 +82,32 @@ class SettingController extends Controller
 
         return back()->with('success', 'Logo removed.');
     }
+
+    public function uploadSignature(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'signature' => 'required|image|mimes:png,jpg,jpeg,webp|max:1024',
+        ]);
+
+        $oldSignature = Setting::get('company_signature');
+        if ($oldSignature && Storage::disk('public')->exists($oldSignature)) {
+            Storage::disk('public')->delete($oldSignature);
+        }
+
+        $path = $request->file('signature')->store('signatures', 'public');
+        Setting::set('company_signature', $path);
+
+        return back()->with('success', 'Signature updated successfully.');
+    }
+
+    public function removeSignature(): RedirectResponse
+    {
+        $oldSignature = Setting::get('company_signature');
+        if ($oldSignature && Storage::disk('public')->exists($oldSignature)) {
+            Storage::disk('public')->delete($oldSignature);
+        }
+        Setting::set('company_signature', '');
+
+        return back()->with('success', 'Signature removed.');
+    }
 }

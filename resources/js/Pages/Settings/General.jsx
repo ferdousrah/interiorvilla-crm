@@ -3,12 +3,14 @@ import { useRef, useState } from 'react';
 import AppLayout from '@/Layouts/AppLayout';
 import PageHeader from '@/Components/PageHeader';
 import FormField from '@/Components/FormField';
-import { PhotoIcon, TrashIcon, ArrowUpTrayIcon, BuildingOfficeIcon, SwatchIcon } from '@heroicons/react/24/outline';
+import { PhotoIcon, TrashIcon, ArrowUpTrayIcon, BuildingOfficeIcon, SwatchIcon, PencilSquareIcon } from '@heroicons/react/24/outline';
 import { THEME_OPTIONS, THEME_LABELS, THEME_PREVIEW, SIDEBAR_OPTIONS, SIDEBAR_LABELS, SIDEBAR_PREVIEW, SIDEBAR_IS_LIGHT } from '@/Hooks/useThemeColor';
 
 export default function GeneralSettings({ settings }) {
     const logoInputRef = useRef(null);
     const [logoPreview, setLogoPreview] = useState(null);
+    const sigInputRef = useRef(null);
+    const [sigPreview, setSigPreview] = useState(null);
 
     const { data, setData, put, processing, errors } = useForm({
         app_name:          settings.app_name ?? '',
@@ -29,6 +31,9 @@ export default function GeneralSettings({ settings }) {
 
     const currentLogo = settings.company_logo
         ? `/storage/${settings.company_logo}`
+        : null;
+    const currentSig = settings.company_signature
+        ? `/storage/${settings.company_signature}`
         : null;
 
     function submit(e) {
@@ -58,6 +63,29 @@ export default function GeneralSettings({ settings }) {
         if (confirm('Remove the company logo?')) {
             router.delete(route('settings.general.logo.remove'));
             setLogoPreview(null);
+        }
+    }
+
+    function handleSigUpload(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (ev) => setSigPreview(ev.target.result);
+        reader.readAsDataURL(file);
+
+        const formData = new FormData();
+        formData.append('signature', file);
+        router.post(route('settings.general.signature'), formData, {
+            forceFormData: true,
+            onSuccess: () => setSigPreview(null),
+        });
+    }
+
+    function removeSig() {
+        if (confirm('Remove the signature?')) {
+            router.delete(route('settings.general.signature.remove'));
+            setSigPreview(null);
         }
     }
 
@@ -116,6 +144,58 @@ export default function GeneralSettings({ settings }) {
                                 accept="image/png,image/jpeg,image/svg+xml,image/webp"
                                 className="hidden"
                                 onChange={handleLogoUpload}
+                            />
+                        </div>
+                    </div>
+                </div>
+
+                {/* ── Signature Section ───────────── */}
+                <div className="card p-5 sm:p-6">
+                    <h3 className="text-sm font-semibold text-gray-700 mb-4 flex items-center gap-2">
+                        <PencilSquareIcon className="w-5 h-5 text-gray-400" /> Authorized Signature
+                    </h3>
+                    <div className="flex flex-col sm:flex-row items-start gap-5">
+                        {/* Signature preview */}
+                        <div className="w-44 h-24 rounded-2xl border-2 border-dashed border-gray-200 flex items-center justify-center bg-gray-50 overflow-hidden flex-shrink-0">
+                            {sigPreview || currentSig ? (
+                                <img
+                                    src={sigPreview || currentSig}
+                                    alt="Signature"
+                                    className="w-full h-full object-contain p-2"
+                                />
+                            ) : (
+                                <div className="text-center">
+                                    <PencilSquareIcon className="w-8 h-8 text-gray-300 mx-auto" />
+                                    <p className="text-[10px] text-gray-400 mt-1">No signature</p>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Upload controls */}
+                        <div className="space-y-3 flex-1">
+                            <p className="text-xs text-gray-500">
+                                Upload a scanned signature (PNG with <strong>transparent background</strong> works best). It will appear above the signatory name in quotation PDFs and printed copies. Max 1MB.
+                            </p>
+                            <div className="flex gap-2">
+                                <button
+                                    type="button"
+                                    onClick={() => sigInputRef.current?.click()}
+                                    className="btn btn-secondary text-sm flex items-center gap-2"
+                                >
+                                    <ArrowUpTrayIcon className="w-4 h-4" /> Upload Signature
+                                </button>
+                                {(currentSig || sigPreview) && (
+                                    <button type="button" onClick={removeSig} className="btn btn-danger text-sm flex items-center gap-2">
+                                        <TrashIcon className="w-4 h-4" /> Remove
+                                    </button>
+                                )}
+                            </div>
+                            <input
+                                ref={sigInputRef}
+                                type="file"
+                                accept="image/png,image/jpeg,image/webp"
+                                className="hidden"
+                                onChange={handleSigUpload}
                             />
                         </div>
                     </div>

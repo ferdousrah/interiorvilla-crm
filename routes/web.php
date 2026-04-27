@@ -67,6 +67,9 @@ Route::middleware('auth')->group(function () {
     // Global search
     Route::get('/api/search', [GlobalSearchController::class, 'search'])->name('global.search');
 
+    // User Guide (static content page)
+    Route::get('/user-guide', fn() => \Inertia\Inertia::render('UserGuide'))->name('user-guide');
+
     // Materials API (for Cost Estimation picker)
     Route::get('/api/materials', [MaterialController::class, 'search'])->name('api.materials');
 

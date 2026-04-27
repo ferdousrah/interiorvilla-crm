@@ -10,7 +10,7 @@ import {
     FunnelIcon, ReceiptPercentIcon,
     ArrowRightOnRectangleIcon, KeyIcon,
     Squares2X2Icon, BellIcon, MagnifyingGlassIcon, XMarkIcon,
-    ClipboardDocumentListIcon, BanknotesIcon,
+    ClipboardDocumentListIcon, BanknotesIcon, BookOpenIcon,
 } from '@heroicons/react/24/outline';
 import axios from 'axios';
 import {
@@ -100,6 +100,7 @@ const navGroups = [
             { name: 'Audit Log', href: '/settings/audit-log' },
         ],
     },
+    { name: 'User Guideline', href: '/user-guide', icon: BookOpenIcon, single: true, divider: true },
 ];
 
 /* ── Responsive hook ──────────────────────── */
@@ -206,7 +207,12 @@ function SidebarContent({ auth, appSettings, currentPath, onNavigate }) {
             {/* Nav */}
             <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-0.5 overscroll-contain">
                 {navGroups.map(group => (
-                    <NavItem key={group.name} group={group} currentPath={currentPath} onNavigate={onNavigate} />
+                    <Fragment key={group.name}>
+                        {group.divider && (
+                            <div className={`my-2 mx-2 border-t ${isLight ? 'border-gray-200' : 'border-white/15'}`} />
+                        )}
+                        <NavItem group={group} currentPath={currentPath} onNavigate={onNavigate} />
+                    </Fragment>
                 ))}
             </nav>
 

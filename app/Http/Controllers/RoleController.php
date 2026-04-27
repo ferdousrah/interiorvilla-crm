@@ -42,6 +42,7 @@ class RoleController extends Controller
                 'submenus' => [
                     'Cost Estimations' => ['create.cost_estimations'],
                     'Quotations'       => ['create.quotations'],
+                    'Materials'        => ['manage.materials'],
                 ],
             ],
             'Projects' => [

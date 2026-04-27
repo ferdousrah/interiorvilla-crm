@@ -11,6 +11,8 @@ export default function GeneralSettings({ settings }) {
     const [logoPreview, setLogoPreview] = useState(null);
     const sigInputRef = useRef(null);
     const [sigPreview, setSigPreview] = useState(null);
+    const quotationLogoInputRef = useRef(null);
+    const [quotationLogoPreview, setQuotationLogoPreview] = useState(null);
 
     const { data, setData, put, processing, errors } = useForm({
         app_name:          settings.app_name ?? '',
@@ -34,6 +36,9 @@ export default function GeneralSettings({ settings }) {
         : null;
     const currentSig = settings.company_signature
         ? `/storage/${settings.company_signature}`
+        : null;
+    const currentQuotationLogo = settings.quotation_logo
+        ? `/storage/${settings.quotation_logo}`
         : null;
 
     function submit(e) {
@@ -86,6 +91,29 @@ export default function GeneralSettings({ settings }) {
         if (confirm('Remove the signature?')) {
             router.delete(route('settings.general.signature.remove'));
             setSigPreview(null);
+        }
+    }
+
+    function handleQuotationLogoUpload(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (ev) => setQuotationLogoPreview(ev.target.result);
+        reader.readAsDataURL(file);
+
+        const formData = new FormData();
+        formData.append('logo', file);
+        router.post(route('settings.general.quotation-logo'), formData, {
+            forceFormData: true,
+            onSuccess: () => setQuotationLogoPreview(null),
+        });
+    }
+
+    function removeQuotationLogo() {
+        if (confirm('Remove the quotation logo? Quotations will fall back to the main company logo.')) {
+            router.delete(route('settings.general.quotation-logo.remove'));
+            setQuotationLogoPreview(null);
         }
     }
 
@@ -144,6 +172,59 @@ export default function GeneralSettings({ settings }) {
                                 accept="image/png,image/jpeg,image/svg+xml,image/webp"
                                 className="hidden"
                                 onChange={handleLogoUpload}
+                            />
+                        </div>
+                    </div>
+                </div>
+
+                {/* ── Quotation Logo Section ──────── */}
+                <div className="card p-5 sm:p-6">
+                    <h3 className="text-sm font-semibold text-gray-700 mb-4 flex items-center gap-2">
+                        <PhotoIcon className="w-5 h-5 text-gray-400" /> Quotation Logo
+                        <span className="text-[10px] font-normal text-gray-400 ml-1">(optional)</span>
+                    </h3>
+                    <div className="flex flex-col sm:flex-row items-start gap-5">
+                        {/* Quotation logo preview */}
+                        <div className="w-44 h-24 rounded-2xl border-2 border-dashed border-gray-200 flex items-center justify-center bg-gray-50 overflow-hidden flex-shrink-0">
+                            {quotationLogoPreview || currentQuotationLogo ? (
+                                <img
+                                    src={quotationLogoPreview || currentQuotationLogo}
+                                    alt="Quotation logo"
+                                    className="w-full h-full object-contain p-2"
+                                />
+                            ) : (
+                                <div className="text-center">
+                                    <PhotoIcon className="w-8 h-8 text-gray-300 mx-auto" />
+                                    <p className="text-[10px] text-gray-400 mt-1">Uses main logo</p>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Upload controls */}
+                        <div className="space-y-3 flex-1">
+                            <p className="text-xs text-gray-500">
+                                Upload a separate logo to be used <strong>only on quotations</strong> (PDF, public link, print). If none is uploaded, the main company logo is used. Often used when you want a wider letterhead-style image with company name + tagline baked in.
+                            </p>
+                            <div className="flex gap-2">
+                                <button
+                                    type="button"
+                                    onClick={() => quotationLogoInputRef.current?.click()}
+                                    className="btn btn-secondary text-sm flex items-center gap-2"
+                                >
+                                    <ArrowUpTrayIcon className="w-4 h-4" /> Upload Quotation Logo
+                                </button>
+                                {(currentQuotationLogo || quotationLogoPreview) && (
+                                    <button type="button" onClick={removeQuotationLogo} className="btn btn-danger text-sm flex items-center gap-2">
+                                        <TrashIcon className="w-4 h-4" /> Remove
+                                    </button>
+                                )}
+                            </div>
+                            <input
+                                ref={quotationLogoInputRef}
+                                type="file"
+                                accept="image/png,image/jpeg,image/svg+xml,image/webp"
+                                className="hidden"
+                                onChange={handleQuotationLogoUpload}
                             />
                         </div>
                     </div>

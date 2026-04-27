@@ -225,6 +225,8 @@ Route::middleware('auth')->group(function () {
             Route::delete('general/logo', [SettingController::class, 'removeLogo'])->name('general.logo.remove');
             Route::post('general/signature', [SettingController::class, 'uploadSignature'])->name('general.signature');
             Route::delete('general/signature', [SettingController::class, 'removeSignature'])->name('general.signature.remove');
+            Route::post('general/quotation-logo', [SettingController::class, 'uploadQuotationLogo'])->name('general.quotation-logo');
+            Route::delete('general/quotation-logo', [SettingController::class, 'removeQuotationLogo'])->name('general.quotation-logo.remove');
             Route::resource('users', UserController::class);
             Route::patch('users/{user}/activate', [UserController::class, 'toggleActive'])->name('users.activate');
             Route::post('users/{user}/reset-password', [UserController::class, 'resetPassword'])->name('users.reset-password');

@@ -34,7 +34,7 @@ class RoleSeeder extends Seeder
             'view.leads', 'create.leads', 'edit.leads', 'delete.leads', 'assign.leads',
 
             // Sales docs
-            'create.cost_estimations', 'create.quotations',
+            'create.cost_estimations', 'create.quotations', 'manage.materials',
 
             // Projects + tasks
             'view.projects', 'create.projects', 'edit.projects', 'delete.projects',
@@ -74,14 +74,14 @@ class RoleSeeder extends Seeder
             'sales_manager' => [
                 'view.clients', 'create.clients', 'edit.clients',
                 'view.leads', 'create.leads', 'edit.leads', 'delete.leads', 'assign.leads',
-                'create.cost_estimations', 'create.quotations',
+                'create.cost_estimations', 'create.quotations', 'manage.materials',
                 'view.projects',
             ],
 
             'sales_executive' => [
                 'view.clients',
                 'view.leads', 'create.leads', 'edit.leads',
-                'create.cost_estimations', 'create.quotations',
+                'create.cost_estimations', 'create.quotations', 'manage.materials',
                 'view.projects',
             ],
 

@@ -42,6 +42,7 @@ const navGroups = [
         children: [
             { name: 'Cost Estimations', href: '/cost-estimations' },
             { name: 'Quotations', href: '/quotations' },
+            { name: 'Materials', href: '/settings/materials' },
         ],
     },
     { name: 'My Tasks', href: '/tasks', icon: ClipboardDocumentListIcon, single: true },
@@ -91,7 +92,6 @@ const navGroups = [
         name: 'Settings', icon: Cog6ToothIcon, permission: 'manage.users',
         children: [
             { name: 'General', href: '/settings/general' },
-            { name: 'Materials', href: '/settings/materials' },
             { name: 'Expense Categories', href: '/settings/expense-categories' },
             { name: 'Quotation Templates', href: '/settings/quotation-templates' },
             { name: 'Users', href: '/settings/users' },

@@ -110,4 +110,32 @@ class SettingController extends Controller
 
         return back()->with('success', 'Signature removed.');
     }
+
+    public function uploadQuotationLogo(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'logo' => 'required|image|mimes:png,jpg,jpeg,svg,webp|max:2048',
+        ]);
+
+        $old = Setting::get('quotation_logo');
+        if ($old && Storage::disk('public')->exists($old)) {
+            Storage::disk('public')->delete($old);
+        }
+
+        $path = $request->file('logo')->store('quotation-logos', 'public');
+        Setting::set('quotation_logo', $path);
+
+        return back()->with('success', 'Quotation logo updated successfully.');
+    }
+
+    public function removeQuotationLogo(): RedirectResponse
+    {
+        $old = Setting::get('quotation_logo');
+        if ($old && Storage::disk('public')->exists($old)) {
+            Storage::disk('public')->delete($old);
+        }
+        Setting::set('quotation_logo', '');
+
+        return back()->with('success', 'Quotation logo removed.');
+    }
 }

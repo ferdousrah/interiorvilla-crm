@@ -110,7 +110,7 @@ class QuotationController extends Controller
     {
         $quotation->load(['client', 'lead', 'project', 'items', 'createdBy']);
 
-        $logoPath = Setting::get('company_logo');
+        $logoPath = Setting::get('quotation_logo') ?: Setting::get('company_logo');
         $sigPath  = Setting::get('company_signature');
 
         // Sibling revisions (only when this quotation has been revised)
@@ -428,7 +428,7 @@ class QuotationController extends Controller
             'companyAddress'     => Setting::get('company_address'),
             'companyCeoName'     => Setting::get('company_ceo_name'),
             'companyCeoTitle'    => Setting::get('company_ceo_title', 'CEO'),
-            'companyLogo'        => $resolveImage(Setting::get('company_logo')),
+            'companyLogo'        => $resolveImage(Setting::get('quotation_logo') ?: Setting::get('company_logo')),
             'companySignature'   => $resolveImage(Setting::get('company_signature')),
             'grandTotalInWords'  => NumberToWords::toBdt((float) $quotation->grand_total),
             'isPdf'              => $isPdf,

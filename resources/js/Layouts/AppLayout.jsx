@@ -23,6 +23,7 @@ import {
 import { BellAlertIcon } from '@heroicons/react/24/outline';
 import { Fragment } from 'react';
 import { useThemeColor } from '@/Hooks/useThemeColor';
+import Modal from '@/Components/Modal';
 
 const navGroups = [
     { name: 'Dashboard', href: '/', icon: HomeIcon, single: true },
@@ -610,7 +611,9 @@ export default function AppLayout({ children, title, breadcrumbs }) {
     // Close mobile menu on route change
     useEffect(() => { setMobileMenuOpen(false); }, [currentPath]);
 
-    const handleLogout = () => { router.post('/logout'); };
+    const [logoutConfirm, setLogoutConfirm] = useState(false);
+    const handleLogout = () => setLogoutConfirm(true);
+    const confirmLogout = () => router.post('/logout');
 
     const handleMobileNavigate = useCallback(() => { setMobileMenuOpen(false); }, []);
 
@@ -785,6 +788,23 @@ export default function AppLayout({ children, title, breadcrumbs }) {
             {isMobile && (
                 <BottomNav currentPath={currentPath} onMorePress={() => setMobileMenuOpen(true)} />
             )}
+
+            {/* ── Sign Out confirmation ──────────── */}
+            <Modal open={logoutConfirm} onClose={() => setLogoutConfirm(false)} title="Sign out?" size="sm">
+                <div className="p-5 space-y-4">
+                    <p className="text-sm text-gray-700">
+                        You will be signed out and need to log in again to continue.
+                    </p>
+                    <div className="flex justify-end gap-2">
+                        <button type="button" onClick={() => setLogoutConfirm(false)} className="btn">
+                            Cancel
+                        </button>
+                        <button type="button" onClick={confirmLogout} className="btn btn-danger flex items-center gap-2">
+                            <ArrowRightOnRectangleIcon className="w-4 h-4" /> Sign out
+                        </button>
+                    </div>
+                </div>
+            </Modal>
         </div>
     );
 }

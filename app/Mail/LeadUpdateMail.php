@@ -19,7 +19,7 @@ class LeadUpdateMail extends Mailable
         public Lead $lead,
         public User $recipient,
         public ?User $actor,
-        public string $subject,
+        public string $mailSubject,
         public string $headline,
         public string $body,
         public string $leadUrl = ''
@@ -28,7 +28,7 @@ class LeadUpdateMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: $this->subject,
+            subject: $this->mailSubject,
             from: config('mail.from.address'),
             replyTo: array_filter([Setting::get('company_email') ?: config('mail.from.address')]),
         );

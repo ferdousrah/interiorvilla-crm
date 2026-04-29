@@ -107,13 +107,13 @@ class Lead extends Model
 
         try {
             Mail::to($creator->email)->send(new LeadUpdateMail(
-                lead:      $this,
-                recipient: $creator,
-                actor:     $actor,
-                subject:   "{$headline} — {$this->code}",
-                headline:  $headline,
-                body:      $body,
-                leadUrl:   $leadUrl,
+                lead:        $this,
+                recipient:   $creator,
+                actor:       $actor,
+                mailSubject: "{$headline} — {$this->code}",
+                headline:    $headline,
+                body:        $body,
+                leadUrl:     $leadUrl,
             ));
         } catch (\Throwable $e) {
             Log::warning('Lead notifyCreator (email) failed', [

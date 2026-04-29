@@ -503,6 +503,8 @@ class LeadController extends Controller
             'project_name'  => 'nullable|string|max:200',
         ]);
 
+        $oldStatus = $lead->status;
+
         DB::transaction(function () use ($validated, $lead) {
             $lead->update([
                 'status'       => $validated['status'],
@@ -542,6 +544,22 @@ class LeadController extends Controller
                 ]);
             }
         });
+
+        // Notify the lead creator if status actually changed
+        if ($oldStatus !== $validated['status']) {
+            $oldLabel = ucfirst(str_replace('_', ' ', $oldStatus ?? '—'));
+            $newLabel = ucfirst(str_replace('_', ' ', $validated['status']));
+            $body     = "Status changed: {$oldLabel} → {$newLabel}";
+            if ($validated['status'] === 'lost' && !empty($validated['lost_reason'])) {
+                $body .= "\nReason: {$validated['lost_reason']}";
+            }
+            $lead->notifyCreator(
+                type:     'lead.status',
+                headline: "Lead status updated — {$lead->name}",
+                body:     $body,
+                icon:     '🔄',
+            );
+        }
 
         return back()->with('success', 'Lead status updated.');
     }

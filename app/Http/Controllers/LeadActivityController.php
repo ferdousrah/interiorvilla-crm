@@ -21,7 +21,7 @@ class LeadActivityController extends Controller
             'performed_at' => 'required|date',
         ]);
 
-        $lead->activities()->create(array_merge($validated, [
+        $activity = $lead->activities()->create(array_merge($validated, [
             'performed_by' => auth()->id(),
         ]));
 
@@ -29,6 +29,22 @@ class LeadActivityController extends Controller
         if (!empty($validated['next_action_at'])) {
             $lead->update(['follow_up_at' => $validated['next_action_at']]);
         }
+
+        // Notify the lead creator about the new activity
+        $typeLabel = ucfirst(str_replace('_', ' ', $activity->type));
+        $body      = $activity->summary;
+        if (!empty($validated['next_action'])) {
+            $body .= "\n\nNext action: {$validated['next_action']}";
+        }
+        if (!empty($validated['next_action_at'])) {
+            $body .= "\nFollow-up: " . \Carbon\Carbon::parse($validated['next_action_at'])->format('d M Y, h:i A');
+        }
+        $lead->notifyCreator(
+            type:     'lead.activity',
+            headline: "New {$typeLabel} on {$lead->name}",
+            body:     $body,
+            icon:     '📝',
+        );
 
         return back()->with('success', 'Activity logged.');
     }

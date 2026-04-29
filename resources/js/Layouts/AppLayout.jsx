@@ -541,7 +541,7 @@ function NotificationBell({ notifications, unreadCount }) {
         <div className="relative flex-shrink-0" ref={ref}>
             <button onClick={() => setOpen(!open)}
                 className="relative p-2 rounded-xl text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors">
-                <BellIcon className="w-5 h-5" />
+                <BellIcon className="w-5 h-5 [.has-new-notification_&]:animate-bounce [.has-new-notification_&]:text-primary-600" />
                 {unreadCount > 0 && (
                     <span className="absolute -top-0.5 -right-0.5 w-5 h-5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center ring-2 ring-white animate-pulse">
                         {unreadCount > 9 ? '9+' : unreadCount}
@@ -616,6 +616,41 @@ export default function AppLayout({ children, title, breadcrumbs }) {
 
     // Close mobile menu on route change
     useEffect(() => { setMobileMenuOpen(false); }, [currentPath]);
+
+    // ── Live notifications: poll every 20s for new bell-icon updates ──────
+    // Only re-fetches the `auth` prop (unread count + recent list) — no full
+    // page reload, no scroll jump. Pauses when the tab is hidden to save data.
+    useEffect(() => {
+        let timer;
+        const tick = () => {
+            if (document.visibilityState === 'visible') {
+                router.reload({ only: ['auth'], preserveScroll: true, preserveState: true });
+            }
+        };
+        const start = () => {
+            stop();
+            timer = setInterval(tick, 20000);
+        };
+        const stop = () => { if (timer) clearInterval(timer); timer = null; };
+        const onVisibility = () => {
+            if (document.visibilityState === 'visible') { tick(); start(); } else { stop(); }
+        };
+        start();
+        document.addEventListener('visibilitychange', onVisibility);
+        return () => { stop(); document.removeEventListener('visibilitychange', onVisibility); };
+    }, []);
+
+    // Toast a tiny chime when the unread count goes UP (new notification arrived)
+    const prevUnreadRef = useRef(auth?.user?.unread_notifications ?? 0);
+    useEffect(() => {
+        const current = auth?.user?.unread_notifications ?? 0;
+        if (current > prevUnreadRef.current) {
+            // Pulse the bell briefly via a CSS class on body — picked up by NotificationBell
+            document.documentElement.classList.add('has-new-notification');
+            setTimeout(() => document.documentElement.classList.remove('has-new-notification'), 2500);
+        }
+        prevUnreadRef.current = current;
+    }, [auth?.user?.unread_notifications]);
 
     const [logoutConfirm, setLogoutConfirm] = useState(false);
     const handleLogout = () => setLogoutConfirm(true);

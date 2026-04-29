@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Mail\LeadUpdateMail;
 use App\Traits\Auditable;
 
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
@@ -10,6 +11,8 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 
 class Lead extends Model
 {
@@ -66,6 +69,59 @@ class Lead extends Model
      * the `assigned_to` FK column (Laravel snake_cases relation keys by default).
      * Expose the loaded relation under the `assignedTo` camelCase key instead.
      */
+    /**
+     * Notify the lead's creator about an update — both in-app and via email.
+     * Skipped silently if there's no creator, the creator is inactive, or
+     * the creator is the actor performing the action (no self-notify).
+     */
+    public function notifyCreator(string $type, string $headline, string $body, string $icon = '🔔'): void
+    {
+        if (!$this->created_by) return;
+        if ($this->created_by === auth()->id()) return;
+
+        $creator = User::find($this->created_by);
+        if (!$creator || !$creator->is_active) return;
+
+        $actor   = auth()->user();
+        $leadUrl = route('crm.leads.show', $this->id);
+
+        // 1) In-app
+        try {
+            InAppNotification::send(
+                userId:   $creator->id,
+                type:     $type,
+                title:    $headline,
+                message:  $body,
+                link:     $leadUrl,
+                icon:     $icon,
+                causedBy: $actor?->id,
+            );
+        } catch (\Throwable $e) {
+            Log::warning('Lead notifyCreator (in-app) failed', [
+                'lead_id' => $this->id, 'creator_id' => $creator->id, 'error' => $e->getMessage(),
+            ]);
+        }
+
+        // 2) Email — only if creator has one
+        if (empty($creator->email)) return;
+
+        try {
+            Mail::to($creator->email)->send(new LeadUpdateMail(
+                lead:      $this,
+                recipient: $creator,
+                actor:     $actor,
+                subject:   "{$headline} — {$this->code}",
+                headline:  $headline,
+                body:      $body,
+                leadUrl:   $leadUrl,
+            ));
+        } catch (\Throwable $e) {
+            Log::warning('Lead notifyCreator (email) failed', [
+                'lead_id' => $this->id, 'creator_email' => $creator->email, 'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
     public function toArray(): array
     {
         $array = parent::toArray();

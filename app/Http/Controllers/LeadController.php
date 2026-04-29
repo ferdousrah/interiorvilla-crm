@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\LeadAssignedMail;
 use App\Models\AccountHead;
 use App\Models\Client;
 use App\Models\ClientReceipt;
+use App\Models\InAppNotification;
 use App\Models\Invoice;
 use App\Models\InvoiceLineItem;
 use App\Models\Lead;
@@ -15,6 +17,8 @@ use App\Services\CodeGeneratorService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -318,10 +322,15 @@ class LeadController extends Controller
         }
 
         $code = $this->codeGenerator->generate('LD', 'leads');
-        Lead::create(array_merge($validated, [
+        $lead = Lead::create(array_merge($validated, [
             'code'       => $code,
             'created_by' => auth()->id(),
         ]));
+
+        // Notify the assignee if it's not the current user
+        if ($lead->assigned_to && $lead->assigned_to !== auth()->id()) {
+            $this->notifyAssignee($lead);
+        }
 
         return redirect()->route('crm.index')->with('success', 'Lead created successfully.');
     }
@@ -464,7 +473,14 @@ class LeadController extends Controller
             unset($validated['assigned_to']);
         }
 
+        $oldAssignee = $lead->assigned_to;
         $lead->update($validated);
+
+        // Notify the new assignee if assignment changed and it's not the current user
+        $newAssignee = $lead->fresh()->assigned_to;
+        if ($newAssignee && $newAssignee !== $oldAssignee && $newAssignee !== auth()->id()) {
+            $this->notifyAssignee($lead);
+        }
 
         return redirect()->route('crm.leads.show', $lead)->with('success', 'Lead updated.');
     }
@@ -562,5 +578,56 @@ class LeadController extends Controller
         $lead->update(['client_id' => $client->id]);
 
         return redirect()->route('clients.show', $client)->with('success', 'Lead converted to client.');
+    }
+
+    /**
+     * Send in-app + email notification to the lead's assignee.
+     * Failures are logged but never break the parent request.
+     */
+    private function notifyAssignee(Lead $lead): void
+    {
+        $assignee = User::find($lead->assigned_to);
+        if (!$assignee || !$assignee->is_active) return;
+
+        $assignedBy = auth()->user();
+        $leadUrl    = route('crm.leads.show', $lead->id);
+
+        // 1) In-app notification
+        try {
+            $causerLabel = $assignedBy ? " by {$assignedBy->name}" : '';
+            $title = $lead->type === 'corporate' && !empty($lead->company_name)
+                ? "Lead assigned: {$lead->company_name} ({$lead->name})"
+                : "Lead assigned: {$lead->name}";
+
+            InAppNotification::send(
+                userId:   $assignee->id,
+                type:     'lead.assigned',
+                title:    $title,
+                message:  "Phone: {$lead->phone}" . ($lead->source ? " · Source: {$lead->source}" : '') . $causerLabel,
+                link:     $leadUrl,
+                icon:     '🎯',
+                causedBy: $assignedBy?->id,
+            );
+        } catch (\Throwable $e) {
+            Log::warning('Failed to create in-app notification for lead assignment', [
+                'lead_id' => $lead->id, 'assignee_id' => $assignee->id, 'error' => $e->getMessage(),
+            ]);
+        }
+
+        // 2) Email — only if the assignee has an email address
+        if (empty($assignee->email)) return;
+
+        try {
+            Mail::to($assignee->email)->send(new LeadAssignedMail(
+                lead: $lead,
+                assignee: $assignee,
+                assignedBy: $assignedBy,
+                leadUrl: $leadUrl,
+            ));
+        } catch (\Throwable $e) {
+            Log::warning('Failed to send lead-assignment email', [
+                'lead_id' => $lead->id, 'assignee_email' => $assignee->email, 'error' => $e->getMessage(),
+            ]);
+        }
     }
 }

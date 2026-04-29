@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\Setting;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -137,5 +139,72 @@ class SettingController extends Controller
         Setting::set('quotation_logo', '');
 
         return back()->with('success', 'Quotation logo removed.');
+    }
+
+    /**
+     * Wipes all transactional data so the system starts fresh.
+     *
+     * Wipes: leads, clients, quotations, cost estimations, projects, tasks,
+     * vendors, requisitions, purchase orders, GRNs, stock movements,
+     * invoices, receipts, vendor payments, expenses, journal entries,
+     * notifications, and audit logs.
+     *
+     * Keeps: users, roles/permissions, settings, materials catalog,
+     * inventory item master, chart of accounts, expense categories,
+     * quotation templates, HR data, and the company's leave types.
+     */
+    public function clearSampleData(Request $request): RedirectResponse
+    {
+        abort_unless(auth()->user()->hasRole('admin'), 403);
+
+        $request->validate([
+            'confirmation' => 'required|in:DELETE',
+        ]);
+
+        // Order doesn't matter because we disable FK constraints — but listed
+        // grouped by module for clarity.
+        $tables = [
+            // Notifications + audit (reference everything else)
+            'in_app_notifications', 'audit_logs',
+
+            // Accounts
+            'journal_lines', 'journal_entries',
+            'invoice_line_items', 'client_receipts', 'invoices',
+            'vendor_payments', 'expenses',
+
+            // Stock movements
+            'stock_transactions', 'stock_adjustments',
+
+            // Procurement
+            'grn_items', 'goods_receipt_notes',
+            'purchase_order_items', 'purchase_orders',
+            'requisition_items', 'purchase_requisitions',
+            'vendors',
+
+            // Projects + tasks
+            'task_attachments', 'tasks',
+            'project_cost_items', 'project_notes', 'project_phases', 'project_members',
+            'projects',
+
+            // Sales
+            'quotation_items', 'quotations',
+            'cost_estimation_items', 'cost_estimations',
+
+            // CRM + clients
+            'lead_activities', 'leads',
+            'client_contacts', 'clients',
+        ];
+
+        DB::transaction(function () use ($tables) {
+            Schema::disableForeignKeyConstraints();
+            foreach ($tables as $t) {
+                if (Schema::hasTable($t)) {
+                    DB::table($t)->truncate();
+                }
+            }
+            Schema::enableForeignKeyConstraints();
+        });
+
+        return back()->with('success', 'Sample data cleared. Master configuration (users, settings, materials, chart of accounts) is preserved.');
     }
 }

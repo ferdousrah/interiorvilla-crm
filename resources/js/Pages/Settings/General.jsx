@@ -3,7 +3,8 @@ import { useRef, useState } from 'react';
 import AppLayout from '@/Layouts/AppLayout';
 import PageHeader from '@/Components/PageHeader';
 import FormField from '@/Components/FormField';
-import { PhotoIcon, TrashIcon, ArrowUpTrayIcon, BuildingOfficeIcon, SwatchIcon, PencilSquareIcon } from '@heroicons/react/24/outline';
+import Modal from '@/Components/Modal';
+import { PhotoIcon, TrashIcon, ArrowUpTrayIcon, BuildingOfficeIcon, SwatchIcon, PencilSquareIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
 import { THEME_OPTIONS, THEME_LABELS, THEME_PREVIEW, SIDEBAR_OPTIONS, SIDEBAR_LABELS, SIDEBAR_PREVIEW, SIDEBAR_IS_LIGHT } from '@/Hooks/useThemeColor';
 
 export default function GeneralSettings({ settings }) {
@@ -13,6 +14,27 @@ export default function GeneralSettings({ settings }) {
     const [sigPreview, setSigPreview] = useState(null);
     const quotationLogoInputRef = useRef(null);
     const [quotationLogoPreview, setQuotationLogoPreview] = useState(null);
+
+    const [clearModal, setClearModal] = useState(false);
+    const [clearConfirm, setClearConfirm] = useState('');
+    const [clearing, setClearing] = useState(false);
+
+    function clearSampleData() {
+        if (clearConfirm !== 'DELETE') return;
+        setClearing(true);
+        router.post(
+            route('settings.general.clear-sample-data'),
+            { confirmation: clearConfirm },
+            {
+                preserveScroll: true,
+                onFinish: () => {
+                    setClearing(false);
+                    setClearModal(false);
+                    setClearConfirm('');
+                },
+            }
+        );
+    }
 
     const { data, setData, put, processing, errors } = useForm({
         app_name:          settings.app_name ?? '',
@@ -441,7 +463,106 @@ export default function GeneralSettings({ settings }) {
                         </button>
                     </div>
                 </form>
+
+                {/* ── Danger Zone ─────────────────── */}
+                <div className="card border-red-200 bg-red-50/30 p-5 sm:p-6">
+                    <div className="flex items-start gap-3 mb-4">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-red-500 to-rose-600 shadow-md flex items-center justify-center flex-shrink-0">
+                            <ExclamationTriangleIcon className="w-5 h-5 text-white" strokeWidth={2.2} />
+                        </div>
+                        <div>
+                            <h3 className="text-base font-bold text-gray-900">Danger Zone</h3>
+                            <p className="text-xs text-gray-600 font-medium">Destructive actions that cannot be undone.</p>
+                        </div>
+                    </div>
+
+                    <div className="bg-white border border-red-200 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div>
+                            <p className="text-sm font-semibold text-gray-900">Clear Sample Data</p>
+                            <p className="text-xs text-gray-600 mt-0.5">
+                                Wipes all leads, clients, quotations, projects, tasks, expenses, procurement and accounts data.
+                                Master configuration (users, settings, materials, chart of accounts, templates) is preserved.
+                            </p>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={() => setClearModal(true)}
+                            className="btn btn-danger text-sm flex items-center gap-2 flex-shrink-0"
+                        >
+                            <TrashIcon className="w-4 h-4" /> Clear Sample Data
+                        </button>
+                    </div>
+                </div>
             </div>
+
+            {/* Clear Sample Data confirmation modal */}
+            <Modal open={clearModal} onClose={() => { setClearModal(false); setClearConfirm(''); }} title="Clear all sample data?" size="md">
+                <div className="p-5 space-y-4">
+                    <div className="flex items-start gap-3 p-3 rounded-xl bg-red-50 border border-red-200">
+                        <ExclamationTriangleIcon className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+                        <div className="text-sm text-red-800 leading-relaxed">
+                            This will <strong>permanently delete</strong> all transactional records. <strong>This cannot be undone.</strong>
+                        </div>
+                    </div>
+
+                    <div>
+                        <p className="text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">Will be deleted:</p>
+                        <ul className="text-sm text-gray-700 space-y-1 ml-1">
+                            <li>• Leads &amp; lead activities</li>
+                            <li>• Clients &amp; contacts</li>
+                            <li>• Quotations, cost estimations &amp; revisions</li>
+                            <li>• Projects, phases, tasks &amp; project costs</li>
+                            <li>• Vendors, requisitions, purchase orders &amp; GRNs</li>
+                            <li>• Stock transactions &amp; adjustments</li>
+                            <li>• Invoices, receipts, vendor payments &amp; expenses</li>
+                            <li>• Journal entries &amp; lines</li>
+                            <li>• In-app notifications &amp; audit log</li>
+                        </ul>
+                    </div>
+
+                    <div>
+                        <p className="text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">Will be kept:</p>
+                        <ul className="text-sm text-gray-700 space-y-1 ml-1">
+                            <li>• Users, roles &amp; permissions</li>
+                            <li>• Company settings (logo, address, branding)</li>
+                            <li>• Materials catalog &amp; categories</li>
+                            <li>• Inventory items &amp; warehouses (master)</li>
+                            <li>• Chart of accounts</li>
+                            <li>• Quotation templates &amp; expense categories</li>
+                            <li>• HR data (employees, leave types)</li>
+                        </ul>
+                    </div>
+
+                    <div className="pt-2 border-t border-gray-100">
+                        <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-2">
+                            Type <span className="text-red-600">DELETE</span> to confirm
+                        </label>
+                        <input
+                            type="text"
+                            autoFocus
+                            className="form-input w-full text-sm font-mono"
+                            placeholder="DELETE"
+                            value={clearConfirm}
+                            onChange={e => setClearConfirm(e.target.value)}
+                        />
+                    </div>
+
+                    <div className="flex justify-end gap-2 pt-2">
+                        <button type="button" onClick={() => { setClearModal(false); setClearConfirm(''); }} className="btn">
+                            Cancel
+                        </button>
+                        <button
+                            type="button"
+                            onClick={clearSampleData}
+                            disabled={clearConfirm !== 'DELETE' || clearing}
+                            className="btn btn-danger flex items-center gap-2"
+                        >
+                            <TrashIcon className="w-4 h-4" />
+                            {clearing ? 'Clearing…' : 'Permanently Delete All'}
+                        </button>
+                    </div>
+                </div>
+            </Modal>
         </AppLayout>
     );
 }

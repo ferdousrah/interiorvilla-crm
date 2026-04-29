@@ -568,7 +568,13 @@ function NotificationBell({ notifications, unreadCount }) {
                         ) : (
                             notifications.map(n => (
                                 <Link key={n.id} href={n.link || '/notifications'}
-                                    onClick={() => { setOpen(false); if (!n.read_at) router.patch(route('notifications.read', n.id), {}, { preserveScroll: true }); }}
+                                    onClick={() => {
+                                        setOpen(false);
+                                        // Fire-and-forget so it doesn't cancel the Link's navigation
+                                        if (!n.read_at) {
+                                            axios.patch(route('notifications.read', n.id)).catch(() => {});
+                                        }
+                                    }}
                                     className={`flex items-start gap-3 px-4 py-3 hover:bg-gray-50 transition-colors ${!n.read_at ? 'bg-primary-50/30' : ''}`}>
                                     <span className="text-lg flex-shrink-0 mt-0.5">{ICONS[n.type] ?? ICONS.general}</span>
                                     <div className="flex-1 min-w-0">

@@ -195,15 +195,19 @@ class SettingController extends Controller
             'client_contacts', 'clients',
         ];
 
-        DB::transaction(function () use ($tables) {
-            Schema::disableForeignKeyConstraints();
+        // Note: TRUNCATE is a DDL statement and implicitly commits any active
+        // transaction in MySQL, so we deliberately don't wrap this in
+        // DB::transaction(). Each truncate is atomic on its own table.
+        Schema::disableForeignKeyConstraints();
+        try {
             foreach ($tables as $t) {
                 if (Schema::hasTable($t)) {
                     DB::table($t)->truncate();
                 }
             }
+        } finally {
             Schema::enableForeignKeyConstraints();
-        });
+        }
 
         return back()->with('success', 'Sample data cleared. Master configuration (users, settings, materials, chart of accounts) is preserved.');
     }

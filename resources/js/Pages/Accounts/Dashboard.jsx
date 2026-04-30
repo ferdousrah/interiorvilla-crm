@@ -120,10 +120,11 @@ export default function AccountsDashboard({ stats = {}, recentInvoices = [], ove
                 {/* Secondary — balances & profit */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <KpiCard
-                        label="Cash in Hand"
+                        label="Cash & Wallets"
                         value={formatBDT(stats.cash_balance)}
                         icon={WalletIcon}
-                        color="slate" />
+                        color="slate"
+                        subtitle="Cash + Petty Cash + Wallets" />
                     <KpiCard
                         label="Bank Balance"
                         value={formatBDT(stats.bank_balance)}

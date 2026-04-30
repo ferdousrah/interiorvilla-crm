@@ -51,11 +51,25 @@ class InvoiceController extends Controller
         $vendorPaid = (float) \App\Models\VendorPayment::sum('amount');
         $totalPayables = max(0, $poOutstanding - $vendorPaid);
 
-        // Cash / Bank balances from the ledger
-        $cashBalance = (float) \App\Models\JournalLine::whereHas('accountHead', fn($q) => $q->where('code', '1001'))
+        // Cash & wallet balance — sum all asset heads in the 10xx range except
+        // bank (1002). Covers Cash in Hand, Petty Cash, bKash, Nagad, Rocket,
+        // and any user-added cash-like accounts under code 10xx.
+        $cashBalance = (float) \App\Models\JournalLine::whereHas('accountHead', function ($q) {
+            $q->whereHas('group', fn($g) => $g->where('type', 'asset'))
+              ->where('code', 'like', '10%')
+              ->where('code', '!=', '1002');
+        })
             ->selectRaw('SUM(CASE WHEN type="debit" THEN amount ELSE -amount END) as balance')
             ->value('balance');
-        $bankBalance = (float) \App\Models\JournalLine::whereHas('accountHead', fn($q) => $q->where('code', '1002'))
+
+        // Bank balance — code 1002 (Bank Account) plus any user-added bank
+        // accounts that follow the 1002xx pattern.
+        $bankBalance = (float) \App\Models\JournalLine::whereHas('accountHead', function ($q) {
+            $q->whereHas('group', fn($g) => $g->where('type', 'asset'))
+              ->where(function ($q2) {
+                  $q2->where('code', '1002')->orWhere('code', 'like', '1002%');
+              });
+        })
             ->selectRaw('SUM(CASE WHEN type="debit" THEN amount ELSE -amount END) as balance')
             ->value('balance');
 

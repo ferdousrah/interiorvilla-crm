@@ -154,47 +154,39 @@ export default function InvoiceShow({ invoice, company = {}, grandTotalInWords =
                     <div className="p-4 sm:p-6 print:p-0">
                         <div className="max-w-4xl mx-auto bg-white shadow-sm border border-gray-200 print:shadow-none print:border-0 p-8 sm:p-10 print:p-0 text-[14px] text-gray-800 leading-snug">
 
-                            {/* Single 3-col header: [Invoice No + Bill To] | [INVOICE + status] | [Logo + Date] */}
-                            <div className="grid grid-cols-3 items-start gap-6 mb-6">
-                                {/* LEFT: Invoice No + Bill To */}
-                                <div className="text-[14px] leading-relaxed space-y-3">
-                                    <div>Invoice No: <span className="font-bold text-gray-900">{invoice.code}</span></div>
-                                    <div>
-                                        <div className="text-gray-500">Bill To</div>
-                                        {person ? (
-                                            <>
-                                                <div className="font-bold text-gray-900">{billCompany || billContact}</div>
-                                                {person.address && <div>{person.address}</div>}
-                                            </>
-                                        ) : (
-                                            <div className="font-bold text-gray-900">Valued Client</div>
-                                        )}
-                                    </div>
+                            {/* Top row: Invoice No (left)  •  empty/INVOICE space (will align below)  •  Logo (right) */}
+                            <div className="grid grid-cols-3 items-start gap-6 mb-1">
+                                <div className="text-[14px]">
+                                    Invoice No: <span className="font-bold text-gray-900">{invoice.code}</span>
                                 </div>
-
-                                {/* CENTER: INVOICE + status pill */}
-                                <div className="flex flex-col items-center gap-2 pt-8">
-                                    <div className="text-[36px] font-bold text-gray-900 tracking-[0.18em] leading-none">INVOICE</div>
-                                    <span className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full ${statusPill}`}>
-                                        {statusLabel}
-                                    </span>
-                                </div>
-
-                                {/* RIGHT: Logo + Date */}
-                                <div className="text-right space-y-2">
+                                <div />
+                                <div className="text-right">
                                     {company.logo ? (
-                                        <img src={company.logo} alt={company.name} className="inline-block max-h-20 max-w-[260px] object-contain" />
+                                        <img src={company.logo} alt={company.name} className="inline-block max-h-20 max-w-[240px] object-contain" />
                                     ) : (
                                         <div className="text-[17px] font-bold text-gray-900">{company.name || 'Interior Villa'}</div>
                                     )}
-                                    <div className="text-[14px]">
-                                        Date: <span className="font-semibold">{formatDate(invoice.invoice_date ?? invoice.created_at)}</span>
-                                    </div>
-                                    {invoice.due_date && (
-                                        <div className="text-[12.5px] text-gray-600">
-                                            Due: <span className="font-semibold text-gray-800">{formatDate(invoice.due_date)}</span>
-                                        </div>
+                                </div>
+                            </div>
+
+                            {/* Middle row: Bill To (left)  •  INVOICE (center)  •  Date (right) — all aligned */}
+                            <div className="grid grid-cols-3 items-start gap-6 mb-6">
+                                <div className="text-[14px] leading-relaxed">
+                                    <div className="text-gray-500">Bill To</div>
+                                    {person ? (
+                                        <>
+                                            <div className="font-bold text-gray-900">{billCompany || billContact}</div>
+                                            {person.address && <div>{person.address}</div>}
+                                        </>
+                                    ) : (
+                                        <div className="font-bold text-gray-900">Valued Client</div>
                                     )}
+                                </div>
+                                <div className="flex flex-col items-center">
+                                    <div className="text-[34px] font-bold text-gray-900 tracking-[0.18em] leading-none">INVOICE</div>
+                                </div>
+                                <div className="text-right text-[14px]">
+                                    Date: <span className="font-semibold">{formatDate(invoice.invoice_date ?? invoice.created_at)}</span>
                                 </div>
                             </div>
 

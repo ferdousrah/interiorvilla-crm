@@ -15,9 +15,13 @@ class AccountHeadController extends Controller
     {
         $this->authorize('viewAny', \App\Models\Invoice::class);
 
-        $groups = AccountGroup::with(['accountHeads.children'])->get();
+        $groups       = AccountGroup::orderBy('type')->orderBy('name')->get();
+        $accountHeads = AccountHead::orderBy('code')->get();
 
-        return Inertia::render('Accounts/Chart', ['groups' => $groups]);
+        return Inertia::render('Accounts/Chart', [
+            'groups'       => $groups,
+            'accountHeads' => $accountHeads,
+        ]);
     }
 
     public function store(Request $request): RedirectResponse

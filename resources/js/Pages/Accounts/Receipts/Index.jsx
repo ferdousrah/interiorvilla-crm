@@ -6,11 +6,17 @@ import { formatBDT, formatDate } from '@/utils/formatters';
 import { PlusIcon } from '@heroicons/react/24/outline';
 import { useState } from 'react';
 
-export default function Receipts({ receipts, invoices }) {
+export default function Receipts({ receipts, invoices = [], depositAccounts = [] }) {
     const [showForm, setShowForm] = useState(false);
     const { data, setData, post, processing, errors, reset } = useForm({
-        invoice_id: '', amount: '', payment_date: new Date().toISOString().substring(0, 10),
-        payment_method: 'bank_transfer', reference: '', notes: '',
+        invoice_id: '',
+        client_id: '',
+        amount: '',
+        receipt_date: new Date().toISOString().substring(0, 10),
+        payment_method: 'cash',
+        account_head_id: depositAccounts[0]?.id ?? '',
+        reference: '',
+        notes: '',
     });
 
     function submit(e) {
@@ -18,7 +24,17 @@ export default function Receipts({ receipts, invoices }) {
         post(route('accounts.receipts.store'), { onSuccess: () => { reset(); setShowForm(false); } });
     }
 
-    const selectedInv = (invoices ?? []).find(i => i.id === data.invoice_id);
+    function pickInvoice(invoiceId) {
+        const inv = invoices.find(i => i.id === invoiceId);
+        setData(d => ({
+            ...d,
+            invoice_id: invoiceId,
+            client_id: inv?.client_id ?? '',
+            amount: inv?.balance_due ? String(inv.balance_due) : d.amount,
+        }));
+    }
+
+    const selectedInv = invoices.find(i => i.id === data.invoice_id);
 
     return (
         <AppLayout>
@@ -31,34 +47,59 @@ export default function Receipts({ receipts, invoices }) {
             <div className="p-4 sm:p-6">
                 {showForm && (
                     <form onSubmit={submit} className="card p-4 mb-4 space-y-3">
+                        {invoices.length === 0 && (
+                            <div className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-md p-2">
+                                No open invoices found. Create an invoice first, or check if all your invoices are already paid.
+                            </div>
+                        )}
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                             <FormField label="Invoice" error={errors.invoice_id} required>
-                                <select className="form-input text-sm" value={data.invoice_id} onChange={e => setData('invoice_id', e.target.value)}>
+                                <select className="form-input text-sm" value={data.invoice_id} onChange={e => pickInvoice(e.target.value)}>
                                     <option value="">Select Invoice…</option>
-                                    {(invoices ?? []).filter(i => i.balance_due > 0).map(i => (
-                                        <option key={i.id} value={i.id}>{i.code} — {i.client?.name} (Due: {Number(i.balance_due).toLocaleString('en-IN')}৳</option>
+                                    {invoices.map(i => (
+                                        <option key={i.id} value={i.id}>
+                                            {i.code} — {i.client?.name ?? '—'} (Due: {Number(i.balance_due).toLocaleString('en-IN')}৳)
+                                        </option>
                                     ))}
                                 </select>
                             </FormField>
                             <FormField label="Amount (৳)" error={errors.amount} required>
-                                <input type="number" className="form-input text-sm" value={data.amount}
+                                <input type="number" step="0.01" className="form-input text-sm" value={data.amount}
                                     max={selectedInv?.balance_due}
                                     onChange={e => setData('amount', e.target.value)} />
+                                {selectedInv && (
+                                    <p className="text-[10px] text-gray-500 mt-1">
+                                        Balance due: {selectedInv.balance_due.toLocaleString('en-IN')}৳
+                                    </p>
+                                )}
                             </FormField>
-                            <FormField label="Date" error={errors.payment_date}>
-                                <input type="date" className="form-input text-sm" value={data.payment_date} onChange={e => setData('payment_date', e.target.value)} />
+                            <FormField label="Receipt Date" error={errors.receipt_date} required>
+                                <input type="date" className="form-input text-sm" value={data.receipt_date} onChange={e => setData('receipt_date', e.target.value)} />
                             </FormField>
-                            <FormField label="Method" error={errors.payment_method}>
+                            <FormField label="Payment Method" error={errors.payment_method} required>
                                 <select className="form-input text-sm" value={data.payment_method} onChange={e => setData('payment_method', e.target.value)}>
-                                    {['cash','bank_transfer','cheque','mobile_banking'].map(m => <option key={m} value={m}>{m.replace('_', ' ')}</option>)}
+                                    {['cash','bank_transfer','cheque','bkash','nagad','rocket','other'].map(m => (
+                                        <option key={m} value={m} className="capitalize">{m.replace('_', ' ')}</option>
+                                    ))}
                                 </select>
                             </FormField>
+                            <FormField label="Deposit Account" error={errors.account_head_id} required>
+                                <select className="form-input text-sm" value={data.account_head_id} onChange={e => setData('account_head_id', e.target.value)}>
+                                    <option value="">Select account…</option>
+                                    {depositAccounts.map(a => (
+                                        <option key={a.id} value={a.id}>{a.code} — {a.name}</option>
+                                    ))}
+                                </select>
+                                <p className="text-[10px] text-gray-500 mt-1">Where the money was received (Cash, Bank, bKash, etc.)</p>
+                            </FormField>
                             <FormField label="Reference" error={errors.reference}>
-                                <input className="form-input text-sm" value={data.reference} onChange={e => setData('reference', e.target.value)} />
+                                <input className="form-input text-sm" value={data.reference} onChange={e => setData('reference', e.target.value)} placeholder="bKash Txn ID, cheque no., etc." />
                             </FormField>
                         </div>
                         <div className="flex gap-2">
-                            <button type="submit" disabled={processing} className="btn btn-primary text-sm">{processing ? '…' : 'Record Receipt'}</button>
+                            <button type="submit" disabled={processing || invoices.length === 0} className="btn btn-primary text-sm">
+                                {processing ? '…' : 'Record Receipt'}
+                            </button>
                             <button type="button" onClick={() => setShowForm(false)} className="btn text-sm">Cancel</button>
                         </div>
                     </form>

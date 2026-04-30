@@ -25,11 +25,41 @@ class ClientReceiptController extends Controller
     {
         $this->authorize('viewAny', Invoice::class);
 
-        $receipts = ClientReceipt::with(['client', 'invoice', 'accountHead'])
+        $receipts = ClientReceipt::with(['client', 'invoice.client', 'accountHead'])
             ->orderByDesc('receipt_date')
             ->paginate(25)->withQueryString();
 
-        return Inertia::render('Accounts/Receipts/Index', ['receipts' => $receipts]);
+        // Open invoices (balance > 0) — for the inline receipt form dropdown
+        $openInvoices = Invoice::with('client:id,name')
+            ->whereNotIn('status', ['paid', 'cancelled'])
+            ->select('id', 'code', 'client_id', 'grand_total', 'paid_amount', 'income_source')
+            ->orderByDesc('invoice_date')
+            ->get()
+            ->map(fn($inv) => [
+                'id'            => $inv->id,
+                'code'          => $inv->code,
+                'client_id'     => $inv->client_id,
+                'client'        => $inv->client ? ['id' => $inv->client->id, 'name' => $inv->client->name] : null,
+                'grand_total'   => (float) $inv->grand_total,
+                'paid_amount'   => (float) $inv->paid_amount,
+                'balance_due'   => (float) $inv->grand_total - (float) $inv->paid_amount,
+                'income_source' => $inv->income_source,
+            ])
+            ->filter(fn($inv) => $inv['balance_due'] > 0)
+            ->values();
+
+        // Asset account heads suitable as deposit destinations (10xx range)
+        $depositAccounts = AccountHead::whereHas('group', fn($q) => $q->where('type', 'asset'))
+            ->where('is_active', true)
+            ->where('code', 'like', '10%')
+            ->orderBy('code')
+            ->get(['id', 'code', 'name']);
+
+        return Inertia::render('Accounts/Receipts/Index', [
+            'receipts'        => $receipts,
+            'invoices'        => $openInvoices,
+            'depositAccounts' => $depositAccounts,
+        ]);
     }
 
     public function create(): Response

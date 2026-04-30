@@ -5,7 +5,7 @@ import Badge from '@/Components/Badge';
 import FormField from '@/Components/FormField';
 import Modal from '@/Components/Modal';
 import { formatBDT, formatDate } from '@/utils/formatters';
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 import axios from 'axios';
 import {
     EnvelopeIcon, ShareIcon, LinkIcon, DocumentArrowDownIcon, PrinterIcon, BanknotesIcon,
@@ -52,7 +52,7 @@ function RecordPaymentForm({ invoice, onClose }) {
     );
 }
 
-export default function InvoiceShow({ invoice }) {
+export default function InvoiceShow({ invoice, company = {}, grandTotalInWords = '' }) {
     const [showPayment, setShowPayment] = useState(false);
     const [emailModal, setEmailModal] = useState(false);
     const [shareBusy, setShareBusy] = useState(false);
@@ -129,59 +129,195 @@ export default function InvoiceShow({ invoice }) {
                     </button>
                 )}
             </PageHeader>
-            <div className="p-4 sm:p-6 max-w-4xl">
-                {showPayment && <RecordPaymentForm invoice={invoice} onClose={() => setShowPayment(false)} />}
-                <div className="card p-4 mb-4">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
-                        <div>
-                            <p className="text-gray-500 text-xs uppercase mb-1">Client</p>
-                            <p className="font-semibold">{invoice.client?.name}</p>
-                            <p className="text-gray-600">{invoice.client?.phone}</p>
-                        </div>
-                        <div>
-                            <p className="text-gray-500 text-xs uppercase mb-1">Invoice Details</p>
-                            <p>Date: {formatDate(invoice.invoice_date)}</p>
-                            {invoice.due_date && <p>Due: {formatDate(invoice.due_date)}</p>}
-                            {invoice.project && <p>Project: {invoice.project.name}</p>}
-                        </div>
-                        <div>
-                            <p className="text-gray-500 text-xs uppercase mb-1">Payment Status</p>
-                            <Badge variant={STATUS_COLORS[invoice.status]}>{invoice.status}</Badge>
-                            <p className="mt-2">Total: <strong>{formatBDT(invoice.grand_total)}</strong></p>
-                            <p className="text-green-700">Paid: {formatBDT(invoice.paid_amount)}</p>
-                            <p className="text-red-600 font-semibold">Balance: {formatBDT(invoice.balance_due)}</p>
+            {showPayment && (
+                <div className="px-4 sm:px-6 pt-4 print:hidden">
+                    <RecordPaymentForm invoice={invoice} onClose={() => setShowPayment(false)} />
+                </div>
+            )}
+
+            {/* Printable invoice document — same letterhead format as PDF / public link */}
+            {(() => {
+                const lineItems = invoice.line_items ?? invoice.lineItems ?? [];
+                const balanceDue = parseFloat(invoice.grand_total ?? 0) - parseFloat(invoice.paid_amount ?? 0);
+                const person = invoice.client ?? invoice.lead;
+                const billCompany = invoice.client?.company_name ?? invoice.lead?.company_name;
+                const billContact = person?.name;
+                const statusLabel = invoice.status?.replace(/_/g, ' ');
+                const statusPill =
+                    invoice.status === 'paid' ? 'bg-emerald-100 text-emerald-800' :
+                    invoice.status === 'partially_paid' ? 'bg-blue-100 text-blue-800' :
+                    invoice.status === 'overdue' ? 'bg-red-100 text-red-800' :
+                    invoice.status === 'draft' ? 'bg-amber-100 text-amber-800' :
+                    'bg-gray-100 text-gray-800';
+
+                return (
+                    <div className="p-4 sm:p-6 print:p-0">
+                        <div className="max-w-4xl mx-auto bg-white shadow-sm border border-gray-200 print:shadow-none print:border-0 p-8 sm:p-10 print:p-0 text-[14px] text-gray-800 leading-snug">
+
+                            {/* Header: Date left, Logo right */}
+                            <div className="flex items-start justify-between gap-6 mb-5">
+                                <div className="text-[14px]">
+                                    Date: <span className="font-semibold">{formatDate(invoice.invoice_date ?? invoice.created_at)}</span>
+                                    {invoice.due_date && (
+                                        <div className="text-[12.5px] text-gray-600 mt-1">
+                                            Due: <span className="font-semibold text-gray-800">{formatDate(invoice.due_date)}</span>
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="text-right">
+                                    {company.logo ? (
+                                        <img src={company.logo} alt={company.name} className="inline-block max-h-20 max-w-[260px] object-contain" />
+                                    ) : (
+                                        <div className="text-[17px] font-bold text-gray-900">{company.name || 'Interior Villa'}</div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* BILL TO */}
+                            <div className="text-[14px] mb-4 leading-relaxed">
+                                <div className="text-gray-500">Bill To</div>
+                                {person ? (
+                                    <>
+                                        <div className="font-bold text-gray-900">{billCompany || billContact}</div>
+                                        {billCompany && billContact && <div>Attn: {billContact}</div>}
+                                        {person.address && <div>{person.address}</div>}
+                                    </>
+                                ) : (
+                                    <div className="font-bold text-gray-900">Valued Client</div>
+                                )}
+                            </div>
+
+                            {/* INVOICE bar */}
+                            <div className="flex items-center justify-between bg-red-50 border-l-4 border-red-600 px-3 py-2.5 mb-4">
+                                <span className="text-[14px] font-bold text-red-800 tracking-wide">
+                                    INVOICE&nbsp;&nbsp;·&nbsp;&nbsp;{invoice.code}
+                                </span>
+                                <span className={`text-[11px] font-bold uppercase tracking-wider px-3 py-1 rounded-full ${statusPill}`}>
+                                    {statusLabel}
+                                </span>
+                            </div>
+
+                            {/* Items table */}
+                            <table className="w-full text-[13.5px] border-collapse">
+                                <thead>
+                                    <tr>
+                                        <th className="bg-gray-50 border border-gray-300 px-3 py-2 text-left font-bold w-12">SL</th>
+                                        <th className="bg-gray-50 border border-gray-300 px-3 py-2 text-left font-bold">Description</th>
+                                        <th className="bg-gray-50 border border-gray-300 px-3 py-2 text-right font-bold w-20">Qty</th>
+                                        <th className="bg-gray-50 border border-gray-300 px-3 py-2 text-right font-bold w-28">Rate</th>
+                                        <th className="bg-gray-50 border border-gray-300 px-3 py-2 text-right font-bold w-32">Amount</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {lineItems.length === 0 ? (
+                                        <tr>
+                                            <td colSpan={5} className="border border-gray-200 px-3 py-6 text-center text-gray-400 italic">No line items</td>
+                                        </tr>
+                                    ) : lineItems.map((item, i) => (
+                                        <tr key={item.id ?? i}>
+                                            <td className="border border-gray-200 px-3 py-2 text-center text-gray-500 align-top">{i + 1}</td>
+                                            <td className="border border-gray-200 px-3 py-2 align-top whitespace-pre-line">{item.description}</td>
+                                            <td className="border border-gray-200 px-3 py-2 text-right tabular-nums align-top">{Number(item.quantity).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                            <td className="border border-gray-200 px-3 py-2 text-right tabular-nums align-top">{formatBDT(item.unit_rate)}</td>
+                                            <td className="border border-gray-200 px-3 py-2 text-right tabular-nums align-top">{formatBDT(item.total)}</td>
+                                        </tr>
+                                    ))}
+
+                                    {/* Subtotal */}
+                                    <tr>
+                                        <td className="bg-gray-100 border border-gray-300 px-3 py-2 font-bold text-right" colSpan={4}>Subtotal</td>
+                                        <td className="bg-gray-100 border border-gray-300 px-3 py-2 text-right font-bold tabular-nums">{formatBDT(invoice.subtotal)}</td>
+                                    </tr>
+
+                                    {/* Discount */}
+                                    {parseFloat(invoice.discount_amount) > 0 && (
+                                        <tr>
+                                            <td className="bg-gray-100 border border-gray-300 px-3 py-2 font-bold text-right" colSpan={4}>Discount</td>
+                                            <td className="bg-gray-100 border border-gray-300 px-3 py-2 text-right font-bold tabular-nums text-red-600">− {formatBDT(invoice.discount_amount)}</td>
+                                        </tr>
+                                    )}
+
+                                    {/* VAT */}
+                                    {parseFloat(invoice.vat_amount) > 0 && (
+                                        <tr>
+                                            <td className="bg-gray-100 border border-gray-300 px-3 py-2 font-bold text-right" colSpan={4}>VAT ({invoice.vat_pct}%)</td>
+                                            <td className="bg-gray-100 border border-gray-300 px-3 py-2 text-right font-bold tabular-nums">{formatBDT(invoice.vat_amount)}</td>
+                                        </tr>
+                                    )}
+
+                                    {/* Grand Total */}
+                                    <tr>
+                                        <td className="bg-gray-900 border border-gray-900 px-3 py-2.5 text-white font-bold text-right text-[15px]" colSpan={4}>GRAND TOTAL</td>
+                                        <td className="bg-gray-900 border border-gray-900 px-3 py-2.5 text-amber-300 font-bold text-right tabular-nums text-[15px]">BDT {formatBDT(invoice.grand_total)}</td>
+                                    </tr>
+
+                                    {/* Paid */}
+                                    {parseFloat(invoice.paid_amount) > 0 && (
+                                        <tr>
+                                            <td className="bg-emerald-50 border border-emerald-200 px-3 py-2 font-bold text-emerald-800 text-right" colSpan={4}>Amount Paid</td>
+                                            <td className="bg-emerald-50 border border-emerald-200 px-3 py-2 text-right font-bold tabular-nums text-emerald-800">{formatBDT(invoice.paid_amount)}</td>
+                                        </tr>
+                                    )}
+
+                                    {/* Balance Due */}
+                                    {balanceDue > 0.01 && (
+                                        <tr>
+                                            <td className="bg-red-50 border border-red-200 px-3 py-2.5 font-bold text-red-800 text-right text-[14px]" colSpan={4}>BALANCE DUE</td>
+                                            <td className="bg-red-50 border border-red-200 px-3 py-2.5 text-right font-bold tabular-nums text-red-800 text-[14px]">BDT {formatBDT(balanceDue)}</td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+
+                            {/* In Words */}
+                            {grandTotalInWords && (
+                                <div className="mt-4 text-[14px] font-bold text-gray-900">
+                                    <span className="text-emerald-700">In Words:</span>{' '}
+                                    <span className="text-gray-700">{grandTotalInWords}</span>
+                                </div>
+                            )}
+
+                            {/* Notes */}
+                            {invoice.notes && (
+                                <div className="mt-5 text-[13.5px] text-gray-700">
+                                    <h4 className="text-[14px] font-bold text-gray-900 mb-2 tracking-wide">NOTES :</h4>
+                                    {invoice.notes.split(/\r\n|\r|\n/).filter(l => l.trim()).map((line, i) => (
+                                        <div key={i} className="leading-relaxed">{line}</div>
+                                    ))}
+                                </div>
+                            )}
+
+                            {/* Sign-off */}
+                            <div className="mt-7 text-[14px]">
+                                <div className="mb-1.5">THANKING YOU</div>
+                                {company.signature ? (
+                                    <img src={company.signature} alt="Signature" className="block max-h-[70px] max-w-[220px] object-contain my-1" />
+                                ) : (
+                                    <div className="h-[60px]" />
+                                )}
+                                <div className="font-bold text-gray-900">
+                                    {company.ceo_name || invoice.createdBy?.name}
+                                </div>
+                                <div className="text-gray-600 text-[13px]">{company.ceo_title || 'CEO'}</div>
+                                <div className="font-bold text-gray-900 text-[16px] mt-1.5">{company.name || 'Interior Villa'}</div>
+                                {(company.phone || company.phone2) && (
+                                    <div className="text-gray-700 text-[13px] mt-1">
+                                        Cell: {[company.phone, company.phone2].filter(Boolean).join(', ')}
+                                    </div>
+                                )}
+                                {company.email && <div className="text-gray-700 text-[13px]">Email: {company.email}</div>}
+                            </div>
+
+                            {/* Footer address */}
+                            {company.address && (
+                                <div className="mt-6 pt-3 border-t border-gray-300 text-center font-bold text-[14px] text-gray-900">
+                                    {company.address}
+                                </div>
+                            )}
                         </div>
                     </div>
-                </div>
-
-                <div className="card overflow-hidden mb-4">
-                    <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-50">
-                            <tr>{['#','Description','Qty','Unit Price','Total'].map(h => (
-                                <th key={h} className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{h}</th>
-                            ))}</tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-100">
-                            {(invoice.items ?? []).map((item, i) => (
-                                <tr key={item.id}>
-                                    <td className="px-4 py-3 text-sm">{i + 1}</td>
-                                    <td className="px-4 py-3 text-sm">{item.description}</td>
-                                    <td className="px-4 py-3 text-sm">{item.quantity}</td>
-                                    <td className="px-4 py-3 text-sm">{formatBDT(item.unit_price)}</td>
-                                    <td className="px-4 py-3 text-sm font-medium">{formatBDT(item.total)}</td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-
-                <div className="text-right text-sm space-y-1">
-                    <div>Subtotal: {formatBDT(invoice.subtotal)}</div>
-                    {invoice.vat_amount > 0 && <div>VAT: {formatBDT(invoice.vat_amount)}</div>}
-                    {invoice.discount_amount > 0 && <div>Discount: -{formatBDT(invoice.discount_amount)}</div>}
-                    <div className="font-bold text-primary-700 text-base">Grand Total: {formatBDT(invoice.grand_total)}</div>
-                </div>
-            </div>
+                );
+            })()}
 
             {/* Send Email modal */}
             <Modal open={emailModal} onClose={() => setEmailModal(false)} title="Send Invoice by Email" size="md">

@@ -290,10 +290,26 @@ class InvoiceController extends Controller
 
         $invoice->load(['client', 'lead', 'project', 'lineItems', 'receipts.accountHead', 'createdBy']);
 
+        $logoPath = Setting::get('quotation_logo') ?: Setting::get('company_logo');
+        $sigPath  = Setting::get('company_signature');
+
         return Inertia::render('Accounts/Invoices/Show', [
             'invoice' => $invoice,
             'accountHeads' => AccountHead::whereHas('group', fn($q) => $q->where('type', 'asset'))
                 ->where('is_active', true)->select('id', 'name', 'code')->get(),
+            'company' => [
+                'name'      => Setting::get('company_name', 'Interior Villa'),
+                'tagline'   => Setting::get('company_tagline', 'Build Your Dream'),
+                'email'     => Setting::get('company_email'),
+                'phone'     => Setting::get('company_phone'),
+                'phone2'    => Setting::get('company_phone2'),
+                'address'   => Setting::get('company_address'),
+                'ceo_name'  => Setting::get('company_ceo_name'),
+                'ceo_title' => Setting::get('company_ceo_title', 'CEO'),
+                'logo'      => $logoPath ? asset('storage/' . $logoPath) : null,
+                'signature' => $sigPath ? asset('storage/' . $sigPath) : null,
+            ],
+            'grandTotalInWords' => NumberToWords::toBdt((float) $invoice->grand_total),
         ]);
     }
 

@@ -8,9 +8,12 @@ function blankItem() {
     return { inventory_item_id: '', description: '', unit: 'pcs', quantity: '', estimated_rate: '' };
 }
 
+const PRIORITIES = ['low', 'normal', 'high', 'urgent'];
+
 export default function RequisitionCreate({ projects = [], inventoryItems = [] }) {
     const { data, setData, post, processing, errors } = useForm({
         project_id: '',
+        priority: 'normal',
         required_by: '',
         notes: '',
         items: [blankItem()],
@@ -58,11 +61,16 @@ export default function RequisitionCreate({ projects = [], inventoryItems = [] }
             <div className="p-4 sm:p-6 max-w-5xl">
                 <form onSubmit={submit} className="space-y-4">
                     <div className="card p-6">
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                             <FormField label="Project" error={errors.project_id}>
                                 <select className="form-input" value={data.project_id} onChange={e => setData('project_id', e.target.value)}>
                                     <option value="">— No Project —</option>
                                     {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                                </select>
+                            </FormField>
+                            <FormField label="Priority" error={errors.priority} required>
+                                <select className="form-input" value={data.priority} onChange={e => setData('priority', e.target.value)}>
+                                    {PRIORITIES.map(p => <option key={p} value={p} className="capitalize">{p}</option>)}
                                 </select>
                             </FormField>
                             <FormField label="Required By" error={errors.required_by}>

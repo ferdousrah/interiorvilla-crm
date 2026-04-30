@@ -154,25 +154,20 @@ export default function InvoiceShow({ invoice, company = {}, grandTotalInWords =
                     <div className="p-4 sm:p-6 print:p-0">
                         <div className="max-w-4xl mx-auto bg-white shadow-sm border border-gray-200 print:shadow-none print:border-0 p-8 sm:p-10 print:p-0 text-[14px] text-gray-800 leading-snug">
 
-                            {/* Top row: Invoice No (left)  •  empty/INVOICE space (will align below)  •  Logo (right) */}
-                            <div className="grid grid-cols-3 items-start gap-6 mb-1">
-                                <div className="text-[14px]">
-                                    Invoice No: <span className="font-bold text-gray-900">{invoice.code}</span>
-                                </div>
-                                <div />
-                                <div className="text-right">
-                                    {company.logo ? (
-                                        <img src={company.logo} alt={company.name} className="inline-block max-h-20 max-w-[240px] object-contain" />
-                                    ) : (
-                                        <div className="text-[17px] font-bold text-gray-900">{company.name || 'Interior Villa'}</div>
-                                    )}
-                                </div>
+                            {/* Top: Logo on the left */}
+                            <div className="mb-4">
+                                {company.logo ? (
+                                    <img src={company.logo} alt={company.name} className="block max-h-20 max-w-[240px] object-contain" />
+                                ) : (
+                                    <div className="text-[17px] font-bold text-gray-900">{company.name || 'Interior Villa'}</div>
+                                )}
                             </div>
 
-                            {/* Middle row: Bill To (left)  •  INVOICE (center)  •  Date (right) — all aligned */}
+                            {/* Below: [Invoice No + Bill To] | [INVOICE centered] | [Date right] */}
                             <div className="grid grid-cols-3 items-start gap-6 mb-6">
                                 <div className="text-[14px] leading-relaxed">
-                                    <div className="text-gray-500">Bill To</div>
+                                    <div>Invoice No: <span className="font-bold text-gray-900">{invoice.code}</span></div>
+                                    <div className="text-gray-500 mt-3">Bill To</div>
                                     {person ? (
                                         <>
                                             <div className="font-bold text-gray-900">{billCompany || billContact}</div>
@@ -182,7 +177,7 @@ export default function InvoiceShow({ invoice, company = {}, grandTotalInWords =
                                         <div className="font-bold text-gray-900">Valued Client</div>
                                     )}
                                 </div>
-                                <div className="flex flex-col items-center">
+                                <div className="flex justify-center">
                                     <div className="text-[34px] font-bold text-gray-900 tracking-[0.18em] leading-none">INVOICE</div>
                                 </div>
                                 <div className="text-right text-[14px]">

@@ -170,29 +170,22 @@
                 $contactName  = $person?->name;
             @endphp
 
-            {{-- Top row: Invoice No (left) | empty | Logo (right) --}}
-            <table style="width:100%; border-collapse:collapse; margin-bottom:4px;">
-                <tr>
-                    <td style="width:33.33%; vertical-align:top; font-size:14px;">
-                        Invoice No: <span style="font-weight:700; color:#111827;">{{ $invoice->code }}</span>
-                    </td>
-                    <td style="width:33.33%;"></td>
-                    <td style="width:33.33%; vertical-align:top; text-align:right;">
-                        @if(!empty($companyLogo))
-                            <img src="{{ $companyLogo }}" alt="{{ $companyName }}" style="max-height:80px; max-width:240px; display:inline-block;">
-                        @else
-                            <div style="font-size:17px; font-weight:700; color:#111827;">{{ $companyName }}</div>
-                        @endif
-                    </td>
-                </tr>
-            </table>
+            {{-- Top: Logo on the left --}}
+            <div style="margin-bottom:14px;">
+                @if(!empty($companyLogo))
+                    <img src="{{ $companyLogo }}" alt="{{ $companyName }}" style="max-height:80px; max-width:240px; display:block;">
+                @else
+                    <div style="font-size:17px; font-weight:700; color:#111827;">{{ $companyName }}</div>
+                @endif
+            </div>
 
-            {{-- Middle row: Bill To (left) | INVOICE (center) | Date (right) --}}
+            {{-- Below: [Invoice No + Bill To] | [INVOICE centered] | [Date right] --}}
             <table style="width:100%; border-collapse:collapse; margin-bottom:22px;">
                 <tr>
                     <td style="width:33.33%; vertical-align:top; padding-right:12px;">
                         <div style="font-size:14px; line-height:1.6;">
-                            <div style="color:#6b7280;">Bill To</div>
+                            <div>Invoice No: <span style="font-weight:700; color:#111827;">{{ $invoice->code }}</span></div>
+                            <div style="margin-top:14px; color:#6b7280;">Bill To</div>
                             @if($person)
                                 <div style="font-weight:700; color:#111827;">{{ $companyName2 ?: $contactName }}</div>
                                 @if($person->address)

@@ -164,34 +164,7 @@
     <div class="wrap">
         <div class="sheet">
 
-            {{-- HEADER: Date + Invoice No + Due (left), Logo (right) --}}
-            <table class="hdr">
-                <tr>
-                    <td style="width:55%;">
-                        <div class="date-block">
-                            <div>Date: <span class="date">{{ \Carbon\Carbon::parse($invoice->invoice_date ?? $invoice->created_at)->format('d/m/Y') }}</span></div>
-                            <div style="margin-top: 4px;">Invoice No: <span style="font-weight: 700; color: #111827;">{{ $invoice->code }}</span></div>
-                            @if($invoice->due_date)
-                                <div style="margin-top: 4px; font-size: 12.5px; color: #6b7280;">
-                                    Due: <span style="font-weight: 600; color: #1f2937;">{{ \Carbon\Carbon::parse($invoice->due_date)->format('d/m/Y') }}</span>
-                                </div>
-                            @endif
-                        </div>
-                    </td>
-                    <td class="logo-block" style="width:45%;">
-                        @if(!empty($companyLogo))
-                            <img src="{{ $companyLogo }}" alt="{{ $companyName }}">
-                        @else
-                            <div class="lh-name">{{ $companyName }}</div>
-                            @if(!empty($companyTagline))
-                                <div class="lh-tagline">{{ $companyTagline }}</div>
-                            @endif
-                        @endif
-                    </td>
-                </tr>
-            </table>
-
-            {{-- BILL TO + INVOICE title side-by-side --}}
+            {{-- Single 3-col header: [Invoice No + Bill To] | [INVOICE + status] | [Logo + Date] --}}
             @php
                 $person       = $invoice->client ?? $invoice->lead;
                 $companyName2 = $invoice->client?->company_name ?? $invoice->lead?->company_name;
@@ -205,11 +178,13 @@
                 };
                 $statusLabel = ucfirst(str_replace('_', ' ', $invoice->status));
             @endphp
-            <table style="width:100%; border-collapse:collapse; margin-bottom:18px;">
+            <table style="width:100%; border-collapse:collapse; margin-bottom:22px;">
                 <tr>
-                    <td style="width:33.33%; vertical-align:top;">
+                    {{-- LEFT: Invoice No + Bill To --}}
+                    <td style="width:33.33%; vertical-align:top; padding-right:12px;">
                         <div style="font-size:14px; line-height:1.6;">
-                            <div style="color:#6b7280;">Bill To</div>
+                            <div>Invoice No: <span style="font-weight:700; color:#111827;">{{ $invoice->code }}</span></div>
+                            <div style="margin-top:14px; color:#6b7280;">Bill To</div>
                             @if($person)
                                 <div style="font-weight:700; color:#111827;">{{ $companyName2 ?: $contactName }}</div>
                                 @if($person->address)
@@ -220,13 +195,31 @@
                             @endif
                         </div>
                     </td>
-                    <td style="width:33.33%; vertical-align:top; text-align:center;">
+
+                    {{-- CENTER: INVOICE + status pill --}}
+                    <td style="width:33.33%; vertical-align:top; text-align:center; padding-top:32px;">
                         <div style="font-size:32px; font-weight:700; color:#111827; letter-spacing:0.18em; line-height:1;">INVOICE</div>
-                        <div style="margin-top:8px;">
+                        <div style="margin-top:10px;">
                             <span class="status-pill {{ $statusClass }}">{{ $statusLabel }}</span>
                         </div>
                     </td>
-                    <td style="width:33.33%;"></td>
+
+                    {{-- RIGHT: Logo + Date --}}
+                    <td style="width:33.33%; vertical-align:top; text-align:right; padding-left:12px;">
+                        @if(!empty($companyLogo))
+                            <img src="{{ $companyLogo }}" alt="{{ $companyName }}" style="max-height:80px; max-width:240px; display:inline-block;">
+                        @else
+                            <div style="font-size:17px; font-weight:700; color:#111827;">{{ $companyName }}</div>
+                        @endif
+                        <div style="margin-top:8px; font-size:14px;">
+                            Date: <span style="font-weight:600; color:#1f2937;">{{ \Carbon\Carbon::parse($invoice->invoice_date ?? $invoice->created_at)->format('d M Y') }}</span>
+                        </div>
+                        @if($invoice->due_date)
+                            <div style="margin-top:3px; font-size:12.5px; color:#6b7280;">
+                                Due: <span style="font-weight:600; color:#1f2937;">{{ \Carbon\Carbon::parse($invoice->due_date)->format('d M Y') }}</span>
+                            </div>
+                        @endif
+                    </td>
                 </tr>
             </table>
 

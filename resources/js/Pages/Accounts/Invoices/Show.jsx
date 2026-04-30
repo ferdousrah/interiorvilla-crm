@@ -155,7 +155,7 @@ export default function InvoiceShow({ invoice, company = {}, grandTotalInWords =
                         <div className="max-w-4xl mx-auto bg-white shadow-sm border border-gray-200 print:shadow-none print:border-0 p-8 sm:p-10 print:p-0 text-[14px] text-gray-800 leading-snug">
 
                             {/* Top: Logo on the left */}
-                            <div className="mb-4">
+                            <div className="mb-10">
                                 {company.logo ? (
                                     <img src={company.logo} alt={company.name} className="block max-h-20 max-w-[240px] object-contain" />
                                 ) : (

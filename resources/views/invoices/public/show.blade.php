@@ -171,7 +171,7 @@
             @endphp
 
             {{-- Top: Logo on the left --}}
-            <div style="margin-bottom:14px;">
+            <div style="margin-bottom:36px;">
                 @if(!empty($companyLogo))
                     <img src="{{ $companyLogo }}" alt="{{ $companyName }}" style="max-height:80px; max-width:240px; display:block;">
                 @else

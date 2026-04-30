@@ -193,6 +193,7 @@ Route::middleware('auth')->group(function () {
             Route::patch('expenses/{expense}/approve', [ExpenseController::class, 'approve'])->name('expenses.approve');
             Route::patch('expenses/{expense}/reject', [ExpenseController::class, 'reject'])->name('expenses.reject');
             Route::get('chart', [AccountHeadController::class, 'index'])->name('chart');
+            Route::post('account-groups', [AccountHeadController::class, 'storeGroup'])->name('account-groups.store');
             Route::resource('account-heads', AccountHeadController::class)->except(['index']);
 
             Route::prefix('reports')->name('reports.')->group(function () {

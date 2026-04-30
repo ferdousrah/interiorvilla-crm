@@ -10,13 +10,23 @@ const ACCOUNT_TYPES = ['asset', 'liability', 'equity', 'income', 'expense'];
 
 export default function ChartOfAccounts({ groups, accountHeads }) {
     const [showModal, setShowModal] = useState(false);
+    const [showGroupModal, setShowGroupModal] = useState(false);
     const { data, setData, post, processing, errors, reset } = useForm({
         name: '', code: '', group_id: '', opening_balance: '0', is_bank: false,
     });
 
+    const groupForm = useForm({ name: '', type: 'asset' });
+
     function submit(e) {
         e.preventDefault();
         post(route('accounts.account-heads.store'), { onSuccess: () => { reset(); setShowModal(false); } });
+    }
+
+    function submitGroup(e) {
+        e.preventDefault();
+        groupForm.post(route('accounts.account-groups.store'), {
+            onSuccess: () => { groupForm.reset(); setShowGroupModal(false); },
+        });
     }
 
     const grouped = (groups ?? []).reduce((acc, g) => {
@@ -29,6 +39,9 @@ export default function ChartOfAccounts({ groups, accountHeads }) {
         <AppLayout>
             <Head title="Chart of Accounts" />
             <PageHeader title="Chart of Accounts">
+                <button onClick={() => setShowGroupModal(true)} className="btn btn-secondary flex items-center gap-2">
+                    <PlusIcon className="w-4 h-4" /> Add Group
+                </button>
                 <button onClick={() => setShowModal(true)} className="btn btn-primary flex items-center gap-2">
                     <PlusIcon className="w-4 h-4" /> Add Account
                 </button>
@@ -71,7 +84,7 @@ export default function ChartOfAccounts({ groups, accountHeads }) {
             </div>
 
             <Modal open={showModal} onClose={() => setShowModal(false)} title="New Account">
-                <form onSubmit={submit} className="space-y-4">
+                <form onSubmit={submit} className="p-5 space-y-4">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <FormField label="Account Name" error={errors.name} required>
                             <input className="form-input" value={data.name} onChange={e => setData('name', e.target.value)} />
@@ -80,10 +93,16 @@ export default function ChartOfAccounts({ groups, accountHeads }) {
                             <input className="form-input" value={data.code} onChange={e => setData('code', e.target.value)} placeholder="e.g. 1010" />
                         </FormField>
                         <FormField label="Group" error={errors.group_id} required>
-                            <select className="form-input" value={data.group_id} onChange={e => setData('group_id', e.target.value)}>
-                                <option value="">Select Group…</option>
-                                {(groups ?? []).map(g => <option key={g.id} value={g.id}>{g.name} ({g.type})</option>)}
-                            </select>
+                            <div className="flex gap-2">
+                                <select className="form-input flex-1" value={data.group_id} onChange={e => setData('group_id', e.target.value)}>
+                                    <option value="">Select Group…</option>
+                                    {(groups ?? []).map(g => <option key={g.id} value={g.id}>{g.name} ({g.type})</option>)}
+                                </select>
+                                <button type="button" onClick={() => setShowGroupModal(true)}
+                                    className="btn btn-secondary px-3 flex-shrink-0" title="Create a new group">
+                                    <PlusIcon className="w-4 h-4" />
+                                </button>
+                            </div>
                         </FormField>
                         <FormField label="Opening Balance (৳)" error={errors.opening_balance}>
                             <input type="number" className="form-input" value={data.opening_balance} onChange={e => setData('opening_balance', e.target.value)} />
@@ -96,6 +115,34 @@ export default function ChartOfAccounts({ groups, accountHeads }) {
                     <div className="flex gap-3 pt-2">
                         <button type="submit" disabled={processing} className="btn btn-primary">{processing ? '…' : 'Create Account'}</button>
                         <button type="button" onClick={() => setShowModal(false)} className="btn">Cancel</button>
+                    </div>
+                </form>
+            </Modal>
+
+            <Modal open={showGroupModal} onClose={() => setShowGroupModal(false)} title="New Account Group" size="sm">
+                <form onSubmit={submitGroup} className="p-5 space-y-4">
+                    <p className="text-sm text-gray-600">
+                        Groups categorize your accounts (e.g. "Cash &amp; Bank" under Asset, "Sales Revenue" under Income).
+                    </p>
+                    <FormField label="Group Name" error={groupForm.errors.name} required>
+                        <input className="form-input" value={groupForm.data.name}
+                            onChange={e => groupForm.setData('name', e.target.value)}
+                            placeholder="e.g. Cash & Bank, Operating Expenses" autoFocus />
+                    </FormField>
+                    <FormField label="Type" error={groupForm.errors.type} required>
+                        <select className="form-input" value={groupForm.data.type}
+                            onChange={e => groupForm.setData('type', e.target.value)}>
+                            {ACCOUNT_TYPES.map(t => <option key={t} value={t} className="capitalize">{t}</option>)}
+                        </select>
+                        <p className="text-[11px] text-gray-500 mt-1.5">
+                            <strong>Asset</strong>: cash, bank, receivables · <strong>Liability</strong>: payables, loans · <strong>Equity</strong>: capital · <strong>Income</strong>: revenue · <strong>Expense</strong>: costs
+                        </p>
+                    </FormField>
+                    <div className="flex gap-3 pt-2">
+                        <button type="submit" disabled={groupForm.processing} className="btn btn-primary">
+                            {groupForm.processing ? '…' : 'Create Group'}
+                        </button>
+                        <button type="button" onClick={() => setShowGroupModal(false)} className="btn">Cancel</button>
                     </div>
                 </form>
             </Modal>

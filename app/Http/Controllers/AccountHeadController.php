@@ -70,4 +70,18 @@ class AccountHeadController extends Controller
     public function create(): Response { return $this->index(); }
     public function edit(AccountHead $accountHead): Response { return $this->index(); }
     public function show(AccountHead $accountHead): Response { return $this->index(); }
+
+    public function storeGroup(Request $request): RedirectResponse
+    {
+        $this->authorize('create', \App\Models\Invoice::class);
+
+        $validated = $request->validate([
+            'name' => 'required|string|max:150',
+            'type' => 'required|in:asset,liability,equity,income,expense',
+        ]);
+
+        AccountGroup::create($validated);
+
+        return back()->with('success', 'Account group created.');
+    }
 }

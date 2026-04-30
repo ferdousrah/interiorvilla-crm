@@ -497,10 +497,11 @@ class LeadController extends Controller
         $this->authorize('update', $lead);
 
         $validated = $request->validate([
-            'status'        => 'required|in:new,contacted,qualified,proposal_sent,won,lost',
-            'lost_reason'   => 'required_if:status,lost|nullable|string',
-            'create_project'=> 'nullable|boolean',
-            'project_name'  => 'nullable|string|max:200',
+            'status'           => 'required|in:new,contacted,qualified,proposal_sent,won,lost',
+            'lost_reason'      => 'required_if:status,lost|nullable|string',
+            'create_project'   => 'nullable|boolean',
+            'project_name'     => 'nullable|string|max:200',
+            'site_engineer_id' => 'nullable|uuid|exists:users,id',
         ]);
 
         $oldStatus = $lead->status;
@@ -533,14 +534,15 @@ class LeadController extends Controller
                 }
 
                 Project::create([
-                    'code'         => $code,
-                    'name'         => $validated['project_name'] ?? "Project for {$lead->name}",
-                    'client_id'    => $client->id,
-                    'lead_id'      => $lead->id,
-                    'type'         => 'residential',
-                    'status'       => 'survey',
-                    'site_address' => '',
-                    'created_by'   => auth()->id(),
+                    'code'             => $code,
+                    'name'             => $validated['project_name'] ?? "Project for {$lead->name}",
+                    'client_id'        => $client->id,
+                    'lead_id'          => $lead->id,
+                    'type'             => 'residential',
+                    'status'           => 'survey',
+                    'site_address'     => $lead->address ?? '',
+                    'site_engineer_id' => $validated['site_engineer_id'] ?? null,
+                    'created_by'       => auth()->id(),
                 ]);
             }
         });

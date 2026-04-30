@@ -133,6 +133,7 @@ export default function CRMIndex({ leads, users, serviceCategories = {}, canAssi
     const [lostModal, setLostModal] = useState(null);
     const [lostReason, setLostReason]   = useState('');
     const [projectName, setProjectName] = useState('');
+    const [siteEngineerId, setSiteEngineerId] = useState('');
     const [createProject, setCreateProject] = useState(true);
     const [dragOver, setDragOver] = useState(null);
     const [mobileTab, setMobileTab] = useState('new');
@@ -181,8 +182,16 @@ export default function CRMIndex({ leads, users, serviceCategories = {}, canAssi
     }
 
     function confirmWon() {
-        router.patch(route('crm.leads.status', wonModal.leadId), { status: 'won', create_project: createProject, project_name: projectName },
-            { onFinish: () => { setWonModal(null); setProjectName(''); } });
+        router.patch(
+            route('crm.leads.status', wonModal.leadId),
+            {
+                status: 'won',
+                create_project: createProject,
+                project_name: projectName,
+                site_engineer_id: siteEngineerId || null,
+            },
+            { onFinish: () => { setWonModal(null); setProjectName(''); setSiteEngineerId(''); } }
+        );
     }
     function confirmLost() {
         if (!lostReason.trim()) return;
@@ -406,7 +415,29 @@ export default function CRMIndex({ leads, users, serviceCategories = {}, canAssi
                         <input type="checkbox" className="rounded border-gray-300 text-primary-600" checked={createProject} onChange={e => setCreateProject(e.target.checked)} />
                         <span className="text-sm">Create project now</span>
                     </label>
-                    {createProject && <input className="form-input" value={projectName} onChange={e => setProjectName(e.target.value)} placeholder="Project name…" />}
+                    {createProject && (
+                        <div className="space-y-3">
+                            <div>
+                                <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1.5">
+                                    Project Name <span className="text-red-500">*</span>
+                                </label>
+                                <input className="form-input w-full" value={projectName}
+                                    onChange={e => setProjectName(e.target.value)}
+                                    placeholder="e.g. Richmond Group Office Interior" />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1.5">
+                                    Site Engineer
+                                </label>
+                                <select className="form-input w-full" value={siteEngineerId}
+                                    onChange={e => setSiteEngineerId(e.target.value)}>
+                                    <option value="">— Unassigned —</option>
+                                    {(users ?? []).map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+                                </select>
+                                <p className="text-[11px] text-gray-500 mt-1">Who will be responsible for execution on site.</p>
+                            </div>
+                        </div>
+                    )}
                     <div className="flex gap-3">
                         <button onClick={confirmWon} className="btn btn-primary flex-1 sm:flex-none">Confirm Won</button>
                         <button onClick={() => setWonModal(null)} className="btn flex-1 sm:flex-none">Cancel</button>

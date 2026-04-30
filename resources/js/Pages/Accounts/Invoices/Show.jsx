@@ -154,12 +154,13 @@ export default function InvoiceShow({ invoice, company = {}, grandTotalInWords =
                     <div className="p-4 sm:p-6 print:p-0">
                         <div className="max-w-4xl mx-auto bg-white shadow-sm border border-gray-200 print:shadow-none print:border-0 p-8 sm:p-10 print:p-0 text-[14px] text-gray-800 leading-snug">
 
-                            {/* Header: Date left, Logo right */}
+                            {/* Header: Date + Invoice No + Due (left), Logo (right) */}
                             <div className="flex items-start justify-between gap-6 mb-5">
-                                <div className="text-[14px]">
-                                    Date: <span className="font-semibold">{formatDate(invoice.invoice_date ?? invoice.created_at)}</span>
+                                <div className="text-[14px] space-y-1">
+                                    <div>Date: <span className="font-semibold">{formatDate(invoice.invoice_date ?? invoice.created_at)}</span></div>
+                                    <div>Invoice No: <span className="font-bold text-gray-900">{invoice.code}</span></div>
                                     {invoice.due_date && (
-                                        <div className="text-[12.5px] text-gray-600 mt-1">
+                                        <div className="text-[12.5px] text-gray-600">
                                             Due: <span className="font-semibold text-gray-800">{formatDate(invoice.due_date)}</span>
                                         </div>
                                     )}
@@ -173,13 +174,12 @@ export default function InvoiceShow({ invoice, company = {}, grandTotalInWords =
                                 </div>
                             </div>
 
-                            {/* BILL TO */}
+                            {/* BILL TO — Company/Person Name + Address only */}
                             <div className="text-[14px] mb-4 leading-relaxed">
                                 <div className="text-gray-500">Bill To</div>
                                 {person ? (
                                     <>
                                         <div className="font-bold text-gray-900">{billCompany || billContact}</div>
-                                        {billCompany && billContact && <div>Attn: {billContact}</div>}
                                         {person.address && <div>{person.address}</div>}
                                     </>
                                 ) : (
@@ -187,11 +187,9 @@ export default function InvoiceShow({ invoice, company = {}, grandTotalInWords =
                                 )}
                             </div>
 
-                            {/* INVOICE bar */}
+                            {/* Status bar */}
                             <div className="flex items-center justify-between bg-red-50 border-l-4 border-red-600 px-3 py-2.5 mb-4">
-                                <span className="text-[14px] font-bold text-red-800 tracking-wide">
-                                    INVOICE&nbsp;&nbsp;·&nbsp;&nbsp;{invoice.code}
-                                </span>
+                                <span className="text-[14px] font-bold text-red-800 tracking-wide">INVOICE</span>
                                 <span className={`text-[11px] font-bold uppercase tracking-wider px-3 py-1 rounded-full ${statusPill}`}>
                                     {statusLabel}
                                 </span>

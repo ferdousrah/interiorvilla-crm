@@ -164,14 +164,15 @@
     <div class="wrap">
         <div class="sheet">
 
-            {{-- HEADER: Date + Logo --}}
+            {{-- HEADER: Date + Invoice No + Due (left), Logo (right) --}}
             <table class="hdr">
                 <tr>
                     <td style="width:55%;">
                         <div class="date-block">
-                            Date: <span class="date">{{ \Carbon\Carbon::parse($invoice->invoice_date ?? $invoice->created_at)->format('d/m/Y') }}</span>
+                            <div>Date: <span class="date">{{ \Carbon\Carbon::parse($invoice->invoice_date ?? $invoice->created_at)->format('d/m/Y') }}</span></div>
+                            <div style="margin-top: 4px;">Invoice No: <span style="font-weight: 700; color: #111827;">{{ $invoice->code }}</span></div>
                             @if($invoice->due_date)
-                                <div style="margin-top: 6px; font-size: 12.5px; color: #6b7280;">
+                                <div style="margin-top: 4px; font-size: 12.5px; color: #6b7280;">
                                     Due: <span style="font-weight: 600; color: #1f2937;">{{ \Carbon\Carbon::parse($invoice->due_date)->format('d/m/Y') }}</span>
                                 </div>
                             @endif
@@ -190,19 +191,16 @@
                 </tr>
             </table>
 
-            {{-- TO BLOCK --}}
+            {{-- BILL TO — Company/Person Name + Address only --}}
             @php
-                $person      = $invoice->client ?? $invoice->lead;
+                $person       = $invoice->client ?? $invoice->lead;
                 $companyName2 = $invoice->client?->company_name ?? $invoice->lead?->company_name;
-                $contactName = $person?->name;
+                $contactName  = $person?->name;
             @endphp
             <div class="to-block">
                 <div class="lbl">Bill To</div>
                 @if($person)
                     <div class="name">{{ $companyName2 ?: $contactName }}</div>
-                    @if($companyName2 && $contactName)
-                        <div>Attn: {{ $contactName }}</div>
-                    @endif
                     @if($person->address)
                         <div>{{ $person->address }}</div>
                     @endif
@@ -211,7 +209,7 @@
                 @endif
             </div>
 
-            {{-- INVOICE BAR --}}
+            {{-- Status bar --}}
             @php
                 $statusClass = match($invoice->status) {
                     'paid' => 'status-paid',
@@ -223,7 +221,7 @@
                 $statusLabel = ucfirst(str_replace('_', ' ', $invoice->status));
             @endphp
             <div class="doc-bar">
-                <span>INVOICE&nbsp;&nbsp;·&nbsp;&nbsp;{{ $invoice->code }}</span>
+                <span>INVOICE</span>
                 <span class="status-pill {{ $statusClass }}">{{ $statusLabel }}</span>
             </div>
 

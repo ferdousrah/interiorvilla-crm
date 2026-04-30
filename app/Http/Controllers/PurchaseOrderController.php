@@ -113,8 +113,11 @@ class PurchaseOrderController extends Controller
             ));
 
             foreach ($validated['items'] as $item) {
+                // vat_pct is nullable in validation but the DB column is NOT NULL
+                // — coerce missing/empty to 0 before insert.
                 $po->items()->create(array_merge($item, [
-                    'total' => $item['quantity_ordered'] * $item['unit_rate'],
+                    'vat_pct' => $item['vat_pct'] ?? 0,
+                    'total'   => $item['quantity_ordered'] * $item['unit_rate'],
                 ]));
             }
 

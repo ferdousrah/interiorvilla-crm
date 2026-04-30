@@ -25,11 +25,11 @@ export default function ExpenseShow({ expense }) {
                         </div>
                         <div>
                             <dt className="text-xs text-gray-500 uppercase">Category</dt>
-                            <dd>{expense.account_head?.name ?? '—'}</dd>
+                            <dd>{(expense.accountHead ?? expense.account_head)?.name ?? '—'}</dd>
                         </div>
                         <div>
                             <dt className="text-xs text-gray-500 uppercase">Paid From</dt>
-                            <dd>{expense.paid_from?.name ?? '—'}</dd>
+                            <dd>{(expense.paidFrom ?? expense.paid_from_account)?.name ?? '—'}</dd>
                         </div>
                         <div>
                             <dt className="text-xs text-gray-500 uppercase">Date</dt>

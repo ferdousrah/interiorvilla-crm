@@ -79,6 +79,8 @@ class Expense extends Model
             'submittedBy' => 'submitted_by',
             'approvedBy'  => 'approved_by',
             'createdBy'   => 'created_by',
+            'paidFrom'    => 'paid_from',
+            'accountHead' => 'account_head_id',
         ] as $rel => $fk) {
             if ($this->relationLoaded($rel)) {
                 $array[$fk]  = $this->getAttribute($fk);

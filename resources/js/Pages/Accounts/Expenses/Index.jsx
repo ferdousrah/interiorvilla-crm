@@ -189,7 +189,7 @@ export default function Expenses({
                 <div className="card overflow-hidden">
                     <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-gray-50">
-                            <tr>{['Date', 'Code', 'Project', 'Description', 'Amount', 'Submitted By', 'Status', ''].map(h => (
+                            <tr>{['Date', 'Code', 'Project', 'Description', 'Amount', 'Account Head', 'Paid From', 'Submitted By', 'Status', ''].map(h => (
                                 <th key={h} className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{h}</th>
                             ))}</tr>
                         </thead>
@@ -197,6 +197,8 @@ export default function Expenses({
                             {rows.map(exp => {
                                 const s = STATUS_STYLE[exp.status] ?? STATUS_STYLE.pending;
                                 const Icon = s.icon;
+                                const head = exp.accountHead ?? exp.account_head;
+                                const paidFrom = exp.paidFrom ?? exp.paid_from_account;
                                 return (
                                     <tr key={exp.id} className={`hover:bg-gray-50 ${exp.status === 'pending' ? 'bg-amber-50/30' : ''}`}>
                                         <td className="px-4 py-3 text-sm whitespace-nowrap">{formatDate(exp.expense_date)}</td>
@@ -206,8 +208,24 @@ export default function Expenses({
                                             {exp.description}
                                             {exp.category && <p className="text-[10px] text-gray-400">{exp.category.name}</p>}
                                         </td>
-                                        <td className="px-4 py-3 text-sm font-semibold text-red-600 whitespace-nowrap">{formatBDT(exp.amount)}</td>
-                                        <td className="px-4 py-3 text-xs text-gray-600">{exp.submittedBy?.name ?? exp.submitted_by_name ?? '—'}</td>
+                                        <td className="px-4 py-3 text-sm font-semibold text-red-600 whitespace-nowrap tabular-nums">{formatBDT(exp.amount)}</td>
+                                        <td className="px-4 py-3 text-xs">
+                                            {head ? (
+                                                <div>
+                                                    <span className="font-mono text-gray-500">{head.code}</span>
+                                                    <span className="ml-1 text-gray-700">{head.name}</span>
+                                                </div>
+                                            ) : <span className="text-gray-400">—</span>}
+                                        </td>
+                                        <td className="px-4 py-3 text-xs">
+                                            {paidFrom ? (
+                                                <div>
+                                                    <span className="font-mono text-gray-500">{paidFrom.code}</span>
+                                                    <span className="ml-1 text-gray-700">{paidFrom.name}</span>
+                                                </div>
+                                            ) : <span className="text-gray-400">—</span>}
+                                        </td>
+                                        <td className="px-4 py-3 text-xs text-gray-600">{exp.submittedBy?.name ?? exp.submitted_by?.name ?? '—'}</td>
                                         <td className="px-4 py-3">
                                             <span className={`inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full uppercase ${s.cls}`}>
                                                 <Icon className="w-3 h-3" /> {s.label}
@@ -223,7 +241,7 @@ export default function Expenses({
                                 );
                             })}
                             {rows.length === 0 && (
-                                <tr><td colSpan={8} className="px-4 py-8 text-center text-gray-400">No expenses found.</td></tr>
+                                <tr><td colSpan={10} className="px-4 py-8 text-center text-gray-400">No expenses found.</td></tr>
                             )}
                         </tbody>
                     </table>

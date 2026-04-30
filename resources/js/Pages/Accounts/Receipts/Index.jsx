@@ -66,23 +66,35 @@ export default function Receipts({ receipts, invoices }) {
                 <div className="card overflow-hidden">
                     <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-gray-50">
-                            <tr>{['Date','Invoice','Client','Amount','Method','Reference'].map(h => (
+                            <tr>{['Date','Code','Invoice','Client','Amount','Method','Deposit Account','Reference'].map(h => (
                                 <th key={h} className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{h}</th>
                             ))}</tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100">
-                            {(receipts.data ?? receipts).map(r => (
-                                <tr key={r.id}>
-                                    <td className="px-4 py-3 text-sm">{formatDate(r.payment_date)}</td>
-                                    <td className="px-4 py-3 text-sm font-mono text-primary-600">{r.invoice?.code}</td>
-                                    <td className="px-4 py-3 text-sm">{r.invoice?.client?.name}</td>
-                                    <td className="px-4 py-3 text-sm font-semibold text-green-700">{formatBDT(r.amount)}</td>
-                                    <td className="px-4 py-3 text-sm capitalize">{r.payment_method?.replace('_', ' ')}</td>
-                                    <td className="px-4 py-3 text-sm text-gray-500">{r.reference ?? '—'}</td>
-                                </tr>
-                            ))}
+                            {(receipts.data ?? receipts).map(r => {
+                                const acct = r.account_head ?? r.accountHead;
+                                return (
+                                    <tr key={r.id} className="hover:bg-gray-50/50">
+                                        <td className="px-4 py-3 text-sm whitespace-nowrap">{formatDate(r.receipt_date)}</td>
+                                        <td className="px-4 py-3 text-xs font-mono text-primary-700">{r.code}</td>
+                                        <td className="px-4 py-3 text-sm font-mono text-primary-600">{r.invoice?.code ?? '—'}</td>
+                                        <td className="px-4 py-3 text-sm">{r.invoice?.client?.name ?? r.client?.name ?? '—'}</td>
+                                        <td className="px-4 py-3 text-sm font-semibold text-green-700 tabular-nums">{formatBDT(r.amount)}</td>
+                                        <td className="px-4 py-3 text-sm capitalize">{r.payment_method?.replace('_', ' ')}</td>
+                                        <td className="px-4 py-3 text-sm">
+                                            {acct ? (
+                                                <div>
+                                                    <span className="font-mono text-xs text-gray-500">{acct.code}</span>
+                                                    <span className="ml-1.5 font-medium text-gray-800">{acct.name}</span>
+                                                </div>
+                                            ) : <span className="text-gray-400">—</span>}
+                                        </td>
+                                        <td className="px-4 py-3 text-sm text-gray-500">{r.reference ?? '—'}</td>
+                                    </tr>
+                                );
+                            })}
                             {(receipts.data ?? receipts).length === 0 && (
-                                <tr><td colSpan={6} className="px-4 py-8 text-center text-gray-400">No receipts found.</td></tr>
+                                <tr><td colSpan={8} className="px-4 py-8 text-center text-gray-400">No receipts found.</td></tr>
                             )}
                         </tbody>
                     </table>

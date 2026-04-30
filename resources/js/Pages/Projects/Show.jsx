@@ -4,7 +4,7 @@ import PageHeader from '@/Components/PageHeader';
 import Badge from '@/Components/Badge';
 import FormField from '@/Components/FormField';
 import { formatBDT, formatDate } from '@/utils/formatters';
-import { PencilIcon, PlusIcon, TrashIcon, CalculatorIcon } from '@heroicons/react/24/outline';
+import { PencilIcon, PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { useState } from 'react';
 
 const TASK_STATUSES = ['todo', 'in_progress', 'review', 'done'];
@@ -95,9 +95,6 @@ export default function ProjectShow({ project, users }) {
         <AppLayout>
             <Head title={project.name} />
             <PageHeader title={project.name} subtitle={project.code} back={route('projects.index')}>
-                <Link href={`/cost-estimations/create?project_id=${project.id}`} className="btn btn-secondary flex items-center gap-2">
-                    <CalculatorIcon className="w-4 h-4" /> Cost Estimation
-                </Link>
                 <Link href={route('projects.edit', project.id)} className="btn flex items-center gap-2">
                     <PencilIcon className="w-4 h-4" /> Edit
                 </Link>

@@ -174,25 +174,25 @@ export default function InvoiceShow({ invoice, company = {}, grandTotalInWords =
                                 </div>
                             </div>
 
-                            {/* BILL TO — Company/Person Name + Address only */}
-                            <div className="text-[14px] mb-4 leading-relaxed">
-                                <div className="text-gray-500">Bill To</div>
-                                {person ? (
-                                    <>
-                                        <div className="font-bold text-gray-900">{billCompany || billContact}</div>
-                                        {person.address && <div>{person.address}</div>}
-                                    </>
-                                ) : (
-                                    <div className="font-bold text-gray-900">Valued Client</div>
-                                )}
-                            </div>
-
-                            {/* Status bar */}
-                            <div className="flex items-center justify-between bg-red-50 border-l-4 border-red-600 px-3 py-2.5 mb-4">
-                                <span className="text-[14px] font-bold text-red-800 tracking-wide">INVOICE</span>
-                                <span className={`text-[11px] font-bold uppercase tracking-wider px-3 py-1 rounded-full ${statusPill}`}>
-                                    {statusLabel}
-                                </span>
+                            {/* BILL TO + INVOICE title side-by-side */}
+                            <div className="flex items-start justify-between gap-6 mb-5">
+                                <div className="text-[14px] leading-relaxed">
+                                    <div className="text-gray-500">Bill To</div>
+                                    {person ? (
+                                        <>
+                                            <div className="font-bold text-gray-900">{billCompany || billContact}</div>
+                                            {person.address && <div>{person.address}</div>}
+                                        </>
+                                    ) : (
+                                        <div className="font-bold text-gray-900">Valued Client</div>
+                                    )}
+                                </div>
+                                <div className="flex flex-col items-end gap-1">
+                                    <div className="text-[32px] font-bold text-gray-900 tracking-wider leading-none">INVOICE</div>
+                                    <span className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full ${statusPill}`}>
+                                        {statusLabel}
+                                    </span>
+                                </div>
                             </div>
 
                             {/* Items table */}

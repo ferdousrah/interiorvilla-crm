@@ -191,26 +191,11 @@
                 </tr>
             </table>
 
-            {{-- BILL TO — Company/Person Name + Address only --}}
+            {{-- BILL TO + INVOICE title side-by-side --}}
             @php
                 $person       = $invoice->client ?? $invoice->lead;
                 $companyName2 = $invoice->client?->company_name ?? $invoice->lead?->company_name;
                 $contactName  = $person?->name;
-            @endphp
-            <div class="to-block">
-                <div class="lbl">Bill To</div>
-                @if($person)
-                    <div class="name">{{ $companyName2 ?: $contactName }}</div>
-                    @if($person->address)
-                        <div>{{ $person->address }}</div>
-                    @endif
-                @else
-                    <div class="name">Valued Client</div>
-                @endif
-            </div>
-
-            {{-- Status bar --}}
-            @php
                 $statusClass = match($invoice->status) {
                     'paid' => 'status-paid',
                     'partially_paid' => 'status-partial',
@@ -220,10 +205,29 @@
                 };
                 $statusLabel = ucfirst(str_replace('_', ' ', $invoice->status));
             @endphp
-            <div class="doc-bar">
-                <span>INVOICE</span>
-                <span class="status-pill {{ $statusClass }}">{{ $statusLabel }}</span>
-            </div>
+            <table style="width:100%; border-collapse:collapse; margin-bottom:18px;">
+                <tr>
+                    <td style="vertical-align:top;">
+                        <div style="font-size:14px; line-height:1.6;">
+                            <div style="color:#6b7280;">Bill To</div>
+                            @if($person)
+                                <div style="font-weight:700; color:#111827;">{{ $companyName2 ?: $contactName }}</div>
+                                @if($person->address)
+                                    <div>{{ $person->address }}</div>
+                                @endif
+                            @else
+                                <div style="font-weight:700; color:#111827;">Valued Client</div>
+                            @endif
+                        </div>
+                    </td>
+                    <td style="vertical-align:top; text-align:right;">
+                        <div style="font-size:30px; font-weight:700; color:#111827; letter-spacing:0.08em; line-height:1;">INVOICE</div>
+                        <div style="margin-top:6px;">
+                            <span class="status-pill {{ $statusClass }}">{{ $statusLabel }}</span>
+                        </div>
+                    </td>
+                </tr>
+            </table>
 
             {{-- LINE ITEMS --}}
             <table class="items">

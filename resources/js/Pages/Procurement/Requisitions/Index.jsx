@@ -5,8 +5,6 @@ import Badge from '@/Components/Badge';
 import { formatDate, formatBDT } from '@/utils/formatters';
 import { PlusIcon, EyeIcon } from '@heroicons/react/24/outline';
 
-const STATUS_COLORS = { draft: 'gray', pending: 'warning', approved: 'success', rejected: 'danger', converted: 'info' };
-
 export default function RequisitionsIndex({ requisitions }) {
     return (
         <AppLayout>
@@ -28,10 +26,10 @@ export default function RequisitionsIndex({ requisitions }) {
                             {(requisitions.data ?? requisitions).map(r => (
                                 <tr key={r.id} className="hover:bg-gray-50">
                                     <td className="px-4 py-3 text-sm font-mono text-primary-600">{r.code}</td>
-                                    <td className="px-4 py-3 text-sm">{formatDate(r.request_date)}</td>
+                                    <td className="px-4 py-3 text-sm">{formatDate(r.created_at)}</td>
                                     <td className="px-4 py-3 text-sm">{r.project?.name ?? '—'}</td>
                                     <td className="px-4 py-3 text-sm">{r.required_by ? formatDate(r.required_by) : '—'}</td>
-                                    <td className="px-4 py-3"><Badge variant={STATUS_COLORS[r.status]}>{r.status}</Badge></td>
+                                    <td className="px-4 py-3"><Badge status={r.status} /></td>
                                     <td className="px-4 py-3">
                                         <Link href={route('procurement.requisitions.show', r.id)} className="text-gray-400 hover:text-primary-600">
                                             <EyeIcon className="w-4 h-4" />

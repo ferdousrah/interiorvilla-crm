@@ -5,8 +5,6 @@ import Badge from '@/Components/Badge';
 import { formatDate } from '@/utils/formatters';
 import { usePermissions } from '@/Hooks/usePermissions';
 
-const STATUS_COLORS = { draft: 'gray', pending: 'warning', approved: 'success', rejected: 'danger', converted: 'info' };
-
 export default function RequisitionShow({ requisition }) {
     const { hasAnyRole } = usePermissions();
     const canApprove = hasAnyRole('admin', 'accounts');
@@ -36,8 +34,8 @@ export default function RequisitionShow({ requisition }) {
             <div className="p-4 sm:p-6">
                 <div className="card p-4 mb-4">
                     <div className="flex gap-8 text-sm">
-                        <div><span className="text-gray-500">Status: </span><Badge variant={STATUS_COLORS[requisition.status]}>{requisition.status}</Badge></div>
-                        <div><span className="text-gray-500">Date: </span>{formatDate(requisition.request_date)}</div>
+                        <div><span className="text-gray-500">Status: </span><Badge status={requisition.status} /></div>
+                        <div><span className="text-gray-500">Date: </span>{formatDate(requisition.created_at)}</div>
                         {requisition.required_by && <div><span className="text-gray-500">Required By: </span>{formatDate(requisition.required_by)}</div>}
                         {requisition.project && <div><span className="text-gray-500">Project: </span>{requisition.project.name}</div>}
                         {requisition.requestedBy && <div><span className="text-gray-500">Requested By: </span>{requisition.requestedBy.name}</div>}

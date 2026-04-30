@@ -23,6 +23,7 @@ const colorMap = {
     absent: 'bg-red-100 text-red-800',
     on_hold: 'bg-purple-100 text-purple-800',
     superseded: 'bg-gray-100 text-gray-500',
+    po_raised: 'bg-emerald-100 text-emerald-800',
     expired: 'bg-gray-100 text-gray-500',
     converted: 'bg-emerald-100 text-emerald-700',
     under_review: 'bg-indigo-100 text-indigo-700',

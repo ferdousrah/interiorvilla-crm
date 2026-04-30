@@ -43,8 +43,10 @@ cmds = [
 #   4. db:seed EnsureAdminSeeder  — guarantee admin user exists + has admin role
 #                                   (uses firstOrCreate → won't clobber password
 #                                   if the user has already changed it)
-#   5. permission:cache-reset     — clear Spatie cache (stale after config:cache)
-#   6. cache configs/routes/views for speed
-#   7. exec PHP server so signals propagate properly on Coolify restarts
+#   5. db:seed AccountSeeder      — ensure default chart of accounts groups + heads
+#                                   exist (uses firstOrCreate → safe to re-run)
+#   6. permission:cache-reset     — clear Spatie cache (stale after config:cache)
+#   7. cache configs/routes/views for speed
+#   8. exec PHP server so signals propagate properly on Coolify restarts
 [start]
-cmd = "php artisan migrate --force && (php artisan storage:link 2>/dev/null || true) && (php artisan db:seed --class=RoleSeeder --force || echo 'RoleSeeder skipped') && (php artisan db:seed --class=EnsureAdminSeeder --force || echo 'EnsureAdminSeeder skipped') && (php artisan permission:cache-reset || true) && php artisan config:cache && php artisan route:cache && php artisan view:cache && exec php artisan serve --host=0.0.0.0 --port=${PORT:-8000}"
+cmd = "php artisan migrate --force && (php artisan storage:link 2>/dev/null || true) && (php artisan db:seed --class=RoleSeeder --force || echo 'RoleSeeder skipped') && (php artisan db:seed --class=EnsureAdminSeeder --force || echo 'EnsureAdminSeeder skipped') && (php artisan db:seed --class=AccountSeeder --force || echo 'AccountSeeder skipped') && (php artisan permission:cache-reset || true) && php artisan config:cache && php artisan route:cache && php artisan view:cache && exec php artisan serve --host=0.0.0.0 --port=${PORT:-8000}"

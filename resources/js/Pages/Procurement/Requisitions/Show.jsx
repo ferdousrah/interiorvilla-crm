@@ -56,9 +56,9 @@ export default function RequisitionShow({ requisition }) {
                                     <td className="px-4 py-3 text-sm">{i + 1}</td>
                                     <td className="px-4 py-3 text-sm">{item.description}</td>
                                     <td className="px-4 py-3 text-sm">{item.unit}</td>
-                                    <td className="px-4 py-3 text-sm">{item.quantity_required}</td>
+                                    <td className="px-4 py-3 text-sm">{Number(item.quantity).toLocaleString('en-IN')}</td>
                                     <td className="px-4 py-3 text-sm">{item.estimated_rate ? `${Number(item.estimated_rate).toLocaleString('en-IN')}৳` : '—'}</td>
-                                    <td className="px-4 py-3 text-sm">{item.estimated_rate ? `${(item.quantity_required * item.estimated_rate).toLocaleString('en-IN')}৳` : '—'}</td>
+                                    <td className="px-4 py-3 text-sm">{item.estimated_rate ? `${(Number(item.quantity) * Number(item.estimated_rate)).toLocaleString('en-IN')}৳` : '—'}</td>
                                 </tr>
                             ))}
                         </tbody>

@@ -9,15 +9,16 @@ const STATUS_COLORS = { draft: 'gray', pending: 'warning', approved: 'success', 
 
 export default function RequisitionShow({ requisition }) {
     const { hasAnyRole } = usePermissions();
-    const canApprove = hasAnyRole(['super_admin', 'admin', 'procurement_officer']);
+    const canApprove = hasAnyRole('admin', 'accounts');
 
     function approve() {
+        if (!confirm(`Approve requisition ${requisition.code}?`)) return;
         router.patch(route('procurement.requisitions.approve', requisition.id));
     }
     function reject() {
-        const reason = prompt('Reason for rejection?');
-        if (reason !== null) {
-            router.patch(route('procurement.requisitions.reject', requisition.id), { reason });
+        const note = prompt('Reason for rejection?');
+        if (note && note.trim()) {
+            router.patch(route('procurement.requisitions.reject', requisition.id), { rejection_note: note.trim() });
         }
     }
 

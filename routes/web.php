@@ -187,6 +187,8 @@ Route::middleware('auth')->group(function () {
             Route::get('/', [InvoiceController::class, 'dashboard'])->name('dashboard');
             Route::resource('invoices', InvoiceController::class);
             Route::get('invoices/{invoice}/pdf', [InvoiceController::class, 'pdf'])->name('invoices.pdf');
+            Route::get('invoices/{invoice}/share-link', [InvoiceController::class, 'shareLink'])->name('invoices.share-link');
+            Route::post('invoices/{invoice}/send-email', [InvoiceController::class, 'sendEmail'])->name('invoices.send-email');
             Route::resource('receipts', ClientReceiptController::class);
             Route::resource('vendor-payments', VendorPaymentController::class);
             Route::resource('expenses', ExpenseController::class);
@@ -268,4 +270,12 @@ Route::get('/q/{quotation}', [QuotationController::class, 'showPublic'])
 
 Route::get('/q/{quotation}/pdf', [QuotationController::class, 'downloadPdf'])
     ->name('quotations.public.pdf')
+    ->middleware('signed');
+
+Route::get('/i/{invoice}', [InvoiceController::class, 'showPublic'])
+    ->name('invoices.public.show')
+    ->middleware('signed');
+
+Route::get('/i/{invoice}/pdf', [InvoiceController::class, 'pdf'])
+    ->name('invoices.public.pdf')
     ->middleware('signed');

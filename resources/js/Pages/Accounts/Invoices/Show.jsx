@@ -3,8 +3,13 @@ import AppLayout from '@/Layouts/AppLayout';
 import PageHeader from '@/Components/PageHeader';
 import Badge from '@/Components/Badge';
 import FormField from '@/Components/FormField';
+import Modal from '@/Components/Modal';
 import { formatBDT, formatDate } from '@/utils/formatters';
 import { useState } from 'react';
+import axios from 'axios';
+import {
+    EnvelopeIcon, ShareIcon, LinkIcon, DocumentArrowDownIcon, PrinterIcon, BanknotesIcon,
+} from '@heroicons/react/24/outline';
 
 const STATUS_COLORS = { draft: 'gray', sent: 'info', partial: 'warning', paid: 'success', overdue: 'danger', cancelled: 'danger' };
 
@@ -49,15 +54,79 @@ function RecordPaymentForm({ invoice, onClose }) {
 
 export default function InvoiceShow({ invoice }) {
     const [showPayment, setShowPayment] = useState(false);
+    const [emailModal, setEmailModal] = useState(false);
+    const [shareBusy, setShareBusy] = useState(false);
     const canRecord = !['paid', 'cancelled'].includes(invoice.status);
+
+    const recipientName = invoice.client?.name || invoice.lead?.name || 'Valued Client';
+    const defaultRecipient = invoice.client?.email || invoice.lead?.email || '';
+    const emailForm = useForm({
+        to: defaultRecipient,
+        cc: '',
+        custom_message: `Dear ${recipientName},\n\nPlease find attached our invoice (${invoice.code}). Thank you for your business.\n\nBest regards.`,
+    });
+
+    function submitEmail(e) {
+        e.preventDefault();
+        emailForm.post(route('accounts.invoices.send-email', invoice.id), {
+            preserveScroll: true,
+            onSuccess: () => setEmailModal(false),
+        });
+    }
+
+    async function shareWhatsApp() {
+        setShareBusy(true);
+        try {
+            const { data: res } = await axios.get(route('accounts.invoices.share-link', invoice.id));
+            const phone = (invoice.client?.phone || invoice.lead?.phone || '').replace(/\D/g, '');
+            const text = encodeURIComponent(
+                `Hi ${recipientName},\n\nHere is your invoice ${invoice.code} from us.\nGrand Total: BDT ${formatBDT(invoice.grand_total)}\n\nView full details (PDF available): ${res.url}`
+            );
+            const url = phone ? `https://wa.me/${phone}?text=${text}` : `https://wa.me/?text=${text}`;
+            window.open(url, '_blank', 'noopener');
+        } catch (err) {
+            alert('Could not generate share link.');
+        } finally {
+            setShareBusy(false);
+        }
+    }
+
+    async function copyShareLink() {
+        setShareBusy(true);
+        try {
+            const { data: res } = await axios.get(route('accounts.invoices.share-link', invoice.id));
+            await navigator.clipboard.writeText(res.url);
+            alert('Share link copied to clipboard.');
+        } catch {
+            alert('Could not copy link.');
+        } finally {
+            setShareBusy(false);
+        }
+    }
 
     return (
         <AppLayout>
             <Head title={invoice.code} />
             <PageHeader title={invoice.code} subtitle="Invoice" back={route('accounts.invoices.index')}>
-                <a href={route('accounts.invoices.pdf', invoice.id)} target="_blank" className="btn text-sm">Download PDF</a>
+                <button onClick={() => setEmailModal(true)} className="btn btn-primary flex items-center gap-2 text-sm">
+                    <EnvelopeIcon className="w-4 h-4" /> Send Email
+                </button>
+                <button onClick={shareWhatsApp} disabled={shareBusy} className="btn flex items-center gap-2 text-sm">
+                    <ShareIcon className="w-4 h-4" /> WhatsApp
+                </button>
+                <button onClick={copyShareLink} disabled={shareBusy} className="btn flex items-center gap-2 text-sm" title="Copy public link">
+                    <LinkIcon className="w-4 h-4" /> Copy Link
+                </button>
+                <a href={route('accounts.invoices.pdf', invoice.id)} className="btn flex items-center gap-2 text-sm" title="Download PDF">
+                    <DocumentArrowDownIcon className="w-4 h-4" /> PDF
+                </a>
+                <button onClick={() => window.print()} className="btn flex items-center gap-2 text-sm">
+                    <PrinterIcon className="w-4 h-4" /> Print
+                </button>
                 {canRecord && (
-                    <button onClick={() => setShowPayment(!showPayment)} className="btn btn-primary text-sm">Record Payment</button>
+                    <button onClick={() => setShowPayment(!showPayment)} className="btn btn-secondary flex items-center gap-2 text-sm">
+                        <BanknotesIcon className="w-4 h-4" /> Record Payment
+                    </button>
                 )}
             </PageHeader>
             <div className="p-4 sm:p-6 max-w-4xl">
@@ -113,6 +182,39 @@ export default function InvoiceShow({ invoice }) {
                     <div className="font-bold text-primary-700 text-base">Grand Total: {formatBDT(invoice.grand_total)}</div>
                 </div>
             </div>
+
+            {/* Send Email modal */}
+            <Modal open={emailModal} onClose={() => setEmailModal(false)} title="Send Invoice by Email" size="md">
+                <form onSubmit={submitEmail} className="p-4 sm:p-6 space-y-4">
+                    <FormField label="To" required error={emailForm.errors.to}>
+                        <input className="form-input" type="text"
+                            value={emailForm.data.to}
+                            onChange={e => emailForm.setData('to', e.target.value)}
+                            placeholder="client@example.com — separate multiple with commas" />
+                    </FormField>
+                    <FormField label="CC (optional)" error={emailForm.errors.cc}>
+                        <input className="form-input" type="text"
+                            value={emailForm.data.cc}
+                            onChange={e => emailForm.setData('cc', e.target.value)}
+                            placeholder="manager@example.com" />
+                    </FormField>
+                    <FormField label="Message" error={emailForm.errors.custom_message}>
+                        <textarea className="form-input" rows={6}
+                            value={emailForm.data.custom_message}
+                            onChange={e => emailForm.setData('custom_message', e.target.value)}
+                            placeholder="Optional personal note…" />
+                    </FormField>
+                    <p className="text-xs text-gray-500">
+                        The full invoice PDF and a public link (valid 30 days) will be included automatically.
+                    </p>
+                    <div className="flex justify-end gap-2 pt-2">
+                        <button type="button" onClick={() => setEmailModal(false)} className="btn">Cancel</button>
+                        <button type="submit" disabled={emailForm.processing} className="btn btn-primary flex items-center gap-2">
+                            <EnvelopeIcon className="w-4 h-4" /> {emailForm.processing ? 'Sending…' : 'Send Email'}
+                        </button>
+                    </div>
+                </form>
+            </Modal>
         </AppLayout>
     );
 }

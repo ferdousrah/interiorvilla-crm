@@ -2,18 +2,24 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\InvoiceMail;
 use App\Models\AccountHead;
 use App\Models\Client;
 use App\Models\ClientReceipt;
 use App\Models\Invoice;
 use App\Models\Lead;
 use App\Models\Project;
+use App\Models\Setting;
 use App\Services\AccountingService;
 use App\Services\CodeGeneratorService;
+use App\Support\NumberToWords;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\URL;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -331,9 +337,107 @@ class InvoiceController extends Controller
     public function pdf(Invoice $invoice)
     {
         $this->authorize('view', $invoice);
-        $invoice->load(['client', 'lead', 'lineItems']);
+        $invoice->load(['client', 'lead', 'lineItems', 'createdBy']);
 
-        $pdf = Pdf::loadView('pdf.invoice', ['invoice' => $invoice]);
-        return $pdf->stream("INV-{$invoice->code}.pdf");
+        $pdf = Pdf::loadView('invoices.public.show', $this->buildViewPayload($invoice, true))
+            ->setPaper('a4');
+
+        return $pdf->download("Invoice-{$invoice->code}.pdf");
+    }
+
+    /** Public read-only invoice page — opened via signed URL from email/WhatsApp */
+    public function showPublic(Invoice $invoice)
+    {
+        $invoice->load(['client', 'lead', 'lineItems', 'createdBy']);
+
+        return view('invoices.public.show', array_merge(
+            $this->buildViewPayload($invoice, false),
+            ['pdfUrl' => URL::temporarySignedRoute('invoices.public.pdf', now()->addDays(30), ['invoice' => $invoice->id])]
+        ));
+    }
+
+    /** Returns a 30-day signed URL clients can open without logging in */
+    public function shareLink(Invoice $invoice): JsonResponse
+    {
+        $this->authorize('view', $invoice);
+
+        return response()->json([
+            'url' => URL::temporarySignedRoute(
+                'invoices.public.show',
+                now()->addDays(30),
+                ['invoice' => $invoice->id]
+            ),
+        ]);
+    }
+
+    /** Send invoice by email to the client (Resend / SMTP / etc.) */
+    public function sendEmail(Request $request, Invoice $invoice): RedirectResponse
+    {
+        $this->authorize('view', $invoice);
+
+        $validated = $request->validate([
+            'to'             => 'required|string',
+            'cc'             => 'nullable|string',
+            'custom_message' => 'nullable|string|max:2000',
+        ]);
+
+        $invoice->load(['client', 'lead', 'lineItems', 'createdBy']);
+
+        $publicUrl = URL::temporarySignedRoute(
+            'invoices.public.show',
+            now()->addDays(30),
+            ['invoice' => $invoice->id]
+        );
+
+        $mailable = new InvoiceMail($invoice, $publicUrl, $validated['custom_message'] ?? '');
+
+        $tos = collect(explode(',', $validated['to']))->map(fn($e) => trim($e))->filter();
+        $ccs = collect(explode(',', $validated['cc'] ?? ''))->map(fn($e) => trim($e))->filter();
+
+        $send = Mail::to($tos->all());
+        if ($ccs->isNotEmpty()) $send->cc($ccs->all());
+
+        try {
+            $send->send($mailable);
+        } catch (\Throwable $e) {
+            return back()->with('error', 'Email send failed: ' . $e->getMessage());
+        }
+
+        return back()->with('success', "Invoice {$invoice->code} sent to " . $tos->implode(', ') . '.');
+    }
+
+    /**
+     * Builds the data payload used by both the public web view and the PDF
+     * generator so the two stay perfectly in sync.
+     */
+    private function buildViewPayload(Invoice $invoice, bool $isPdf): array
+    {
+        $resolveImage = function (?string $path) use ($isPdf): ?string {
+            if (!$path) return null;
+            if ($isPdf) {
+                $abs = storage_path('app/public/' . $path);
+                if (is_file($abs)) {
+                    return 'data:image/' . pathinfo($abs, PATHINFO_EXTENSION) . ';base64,' . base64_encode(file_get_contents($abs));
+                }
+                return null;
+            }
+            return asset('storage/' . $path);
+        };
+
+        return [
+            'invoice'            => $invoice,
+            'companyName'        => Setting::get('company_name', 'Interior Villa'),
+            'companyTagline'     => Setting::get('company_tagline', 'Build Your Dream'),
+            'companyEmail'       => Setting::get('company_email'),
+            'companyPhone'       => Setting::get('company_phone'),
+            'companyPhone2'      => Setting::get('company_phone2'),
+            'companyAddress'     => Setting::get('company_address'),
+            'companyCeoName'     => Setting::get('company_ceo_name'),
+            'companyCeoTitle'    => Setting::get('company_ceo_title', 'CEO'),
+            'companyLogo'        => $resolveImage(Setting::get('quotation_logo') ?: Setting::get('company_logo')),
+            'companySignature'   => $resolveImage(Setting::get('company_signature')),
+            'grandTotalInWords'  => NumberToWords::toBdt((float) $invoice->grand_total),
+            'isPdf'              => $isPdf,
+        ];
     }
 }

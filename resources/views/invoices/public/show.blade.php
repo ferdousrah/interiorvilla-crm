@@ -207,7 +207,7 @@
             @endphp
             <table style="width:100%; border-collapse:collapse; margin-bottom:18px;">
                 <tr>
-                    <td style="vertical-align:top;">
+                    <td style="width:33.33%; vertical-align:top;">
                         <div style="font-size:14px; line-height:1.6;">
                             <div style="color:#6b7280;">Bill To</div>
                             @if($person)
@@ -220,12 +220,13 @@
                             @endif
                         </div>
                     </td>
-                    <td style="vertical-align:top; text-align:right;">
-                        <div style="font-size:30px; font-weight:700; color:#111827; letter-spacing:0.08em; line-height:1;">INVOICE</div>
-                        <div style="margin-top:6px;">
+                    <td style="width:33.33%; vertical-align:top; text-align:center;">
+                        <div style="font-size:32px; font-weight:700; color:#111827; letter-spacing:0.18em; line-height:1;">INVOICE</div>
+                        <div style="margin-top:8px;">
                             <span class="status-pill {{ $statusClass }}">{{ $statusLabel }}</span>
                         </div>
                     </td>
+                    <td style="width:33.33%;"></td>
                 </tr>
             </table>
 

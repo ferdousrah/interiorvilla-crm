@@ -174,8 +174,8 @@ export default function InvoiceShow({ invoice, company = {}, grandTotalInWords =
                                 </div>
                             </div>
 
-                            {/* BILL TO + INVOICE title side-by-side */}
-                            <div className="flex items-start justify-between gap-6 mb-5">
+                            {/* BILL TO (left) | INVOICE title (centered) | spacer (right) */}
+                            <div className="grid grid-cols-3 items-start gap-6 mb-5">
                                 <div className="text-[14px] leading-relaxed">
                                     <div className="text-gray-500">Bill To</div>
                                     {person ? (
@@ -187,12 +187,13 @@ export default function InvoiceShow({ invoice, company = {}, grandTotalInWords =
                                         <div className="font-bold text-gray-900">Valued Client</div>
                                     )}
                                 </div>
-                                <div className="flex flex-col items-end gap-1">
-                                    <div className="text-[32px] font-bold text-gray-900 tracking-wider leading-none">INVOICE</div>
+                                <div className="flex flex-col items-center gap-1.5 pt-1">
+                                    <div className="text-[36px] font-bold text-gray-900 tracking-[0.18em] leading-none">INVOICE</div>
                                     <span className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full ${statusPill}`}>
                                         {statusLabel}
                                     </span>
                                 </div>
+                                <div />
                             </div>
 
                             {/* Items table */}

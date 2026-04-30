@@ -42,10 +42,30 @@ class PurchaseOrderController extends Controller
     {
         $this->authorize('viewAny', \App\Models\Vendor::class);
 
+        // Approved requisitions (not yet converted to PO) — for the "From Requisition" picker
+        $requisitions = \App\Models\PurchaseRequisition::with(['items', 'project:id,name'])
+            ->where('status', 'approved')
+            ->orderByDesc('created_at')
+            ->get(['id', 'code', 'project_id', 'required_by'])
+            ->map(fn($r) => [
+                'id'         => $r->id,
+                'code'       => $r->code,
+                'project_id' => $r->project_id,
+                'project'    => $r->project ? ['id' => $r->project->id, 'name' => $r->project->name] : null,
+                'items'      => $r->items->map(fn($i) => [
+                    'inventory_item_id' => $i->inventory_item_id,
+                    'description'       => $i->description,
+                    'unit'              => $i->unit,
+                    'quantity'          => (float) $i->quantity,
+                    'estimated_rate'    => $i->estimated_rate ? (float) $i->estimated_rate : null,
+                ]),
+            ]);
+
         return Inertia::render('Procurement/PurchaseOrders/Create', [
-            'vendors' => Vendor::where('is_active', true)->select('id', 'name', 'code')->get(),
-            'projects' => Project::whereNotIn('status', ['completed', 'cancelled'])->select('id', 'name', 'code')->get(),
+            'vendors'        => Vendor::where('is_active', true)->select('id', 'name', 'code')->get(),
+            'projects'       => Project::whereNotIn('status', ['completed', 'cancelled'])->select('id', 'name', 'code')->get(),
             'inventoryItems' => \App\Models\InventoryItem::where('is_active', true)->select('id', 'name', 'code', 'unit', 'standard_rate')->get(),
+            'requisitions'   => $requisitions,
         ]);
     }
 

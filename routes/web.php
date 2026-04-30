@@ -192,6 +192,11 @@ Route::middleware('auth')->group(function () {
             Route::resource('expenses', ExpenseController::class);
             Route::patch('expenses/{expense}/approve', [ExpenseController::class, 'approve'])->name('expenses.approve');
             Route::patch('expenses/{expense}/reject', [ExpenseController::class, 'reject'])->name('expenses.reject');
+
+            // Paid Service approvals (submitted from CRM lead pages)
+            Route::get('paid-service-approvals', [\App\Http\Controllers\PaidServiceSubmissionController::class, 'index'])->name('paid-service-approvals.index');
+            Route::patch('paid-service-approvals/{submission}/approve', [\App\Http\Controllers\PaidServiceSubmissionController::class, 'approve'])->name('paid-service-approvals.approve');
+            Route::patch('paid-service-approvals/{submission}/reject', [\App\Http\Controllers\PaidServiceSubmissionController::class, 'reject'])->name('paid-service-approvals.reject');
             Route::get('chart', [AccountHeadController::class, 'index'])->name('chart');
             Route::post('account-groups', [AccountHeadController::class, 'storeGroup'])->name('account-groups.store');
             Route::resource('account-heads', AccountHeadController::class)->except(['index']);

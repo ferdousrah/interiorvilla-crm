@@ -10,6 +10,7 @@ use App\Models\InAppNotification;
 use App\Models\Invoice;
 use App\Models\InvoiceLineItem;
 use App\Models\Lead;
+use App\Models\PaidServiceSubmission;
 use App\Models\Project;
 use App\Models\User;
 use App\Services\AccountingService;
@@ -363,10 +364,7 @@ class LeadController extends Controller
      */
     public function storePaidService(Request $request, Lead $lead): RedirectResponse
     {
-        // Lead-scoped action: anyone who can update this lead (i.e. the
-        // assignee, sales_manager, or admin) can record paid services for it.
-        // No separate Invoice::create permission required — the financial
-        // side-effects are scoped to this lead.
+        // Lead-scoped action — sales user can submit; accountant/admin must approve.
         $this->authorize('update', $lead);
 
         $incomeSources = config('services_catalog.income_sources', []);
@@ -382,59 +380,36 @@ class LeadController extends Controller
             'notes'           => 'nullable|string|max:500',
         ]);
 
-        $result = DB::transaction(function () use ($validated, $lead) {
-            $invoice = Invoice::create([
-                'code'            => $this->codeGenerator->generate('INV', 'invoices'),
-                'client_id'       => $lead->client_id,
-                'lead_id'         => $lead->id,
-                'status'          => 'paid',
-                'invoice_date'    => $validated['service_date'],
-                'due_date'        => $validated['service_date'],
-                'subtotal'        => $validated['amount'],
-                'vat_pct'         => 0,
-                'vat_amount'      => 0,
-                'discount_amount' => 0,
-                'grand_total'     => $validated['amount'],
-                'income_source'   => $validated['income_source'],
-                'paid_amount'     => $validated['amount'],
-                'notes'           => $validated['notes'] ?? null,
-                'created_by'      => auth()->id(),
-            ]);
+        $submission = PaidServiceSubmission::create(array_merge($validated, [
+            'code'         => $this->codeGenerator->generate('PSS', 'paid_service_submissions'),
+            'lead_id'      => $lead->id,
+            'status'       => 'pending',
+            'submitted_by' => auth()->id(),
+        ]));
 
-            InvoiceLineItem::create([
-                'invoice_id'  => $invoice->id,
-                'description' => $validated['description'],
-                'quantity'    => 1,
-                'unit_rate'   => $validated['amount'],
-                'total'       => $validated['amount'],
-                'sequence'    => 0,
-            ]);
+        // Notify approvers (admin + accounts) about the new pending submission
+        $approvers = User::where('is_active', true)
+            ->where(fn($q) => $q->role('admin')->orWhere(fn($q2) => $q2->role('accounts')))
+            ->get();
 
-            $receipt = ClientReceipt::create([
-                'code'            => $this->codeGenerator->generate('RCP', 'client_receipts'),
-                'client_id'       => $lead->client_id,
-                'lead_id'         => $lead->id,
-                'invoice_id'      => $invoice->id,
-                'amount'          => $validated['amount'],
-                'income_source'   => $validated['income_source'],
-                'receipt_date'    => $validated['service_date'],
-                'payment_method'  => $validated['payment_method'],
-                'reference'       => $validated['reference'] ?? null,
-                'account_head_id' => $validated['account_head_id'],
-                'notes'           => $validated['notes'] ?? null,
-                'created_by'      => auth()->id(),
-            ]);
+        foreach ($approvers as $approver) {
+            if ($approver->id === auth()->id()) continue;
+            try {
+                InAppNotification::send(
+                    userId:   $approver->id,
+                    type:     'paid_service.submitted',
+                    title:    "Paid service awaiting approval — {$lead->name}",
+                    message:  "{$validated['description']} · BDT " . number_format($validated['amount'], 2),
+                    link:     route('accounts.paid-service-approvals.index'),
+                    icon:     '💰',
+                    causedBy: auth()->id(),
+                );
+            } catch (\Throwable $e) {
+                Log::warning('Paid service notify approver failed', ['error' => $e->getMessage()]);
+            }
+        }
 
-            return [$invoice, $receipt];
-        });
-
-        [$invoice, $receipt] = $result;
-
-        // Post journal entries (A/R debit + Revenue credit, then Cash/Bank debit + A/R credit)
-        $this->accounting->postInvoiceCreated($invoice->fresh(['client', 'lead']));
-        $this->accounting->postClientReceiptRecorded($receipt->fresh(['client', 'lead']));
-
-        return back()->with('success', "Paid service logged — {$invoice->code} / {$receipt->code}.");
+        return back()->with('success', "Paid service submitted ({$submission->code}). Awaiting accountant approval.");
     }
 
     public function edit(Lead $lead): Response

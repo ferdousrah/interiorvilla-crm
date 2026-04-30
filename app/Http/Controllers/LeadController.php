@@ -363,8 +363,11 @@ class LeadController extends Controller
      */
     public function storePaidService(Request $request, Lead $lead): RedirectResponse
     {
+        // Lead-scoped action: anyone who can update this lead (i.e. the
+        // assignee, sales_manager, or admin) can record paid services for it.
+        // No separate Invoice::create permission required — the financial
+        // side-effects are scoped to this lead.
         $this->authorize('update', $lead);
-        $this->authorize('create', Invoice::class);
 
         $incomeSources = config('services_catalog.income_sources', []);
 

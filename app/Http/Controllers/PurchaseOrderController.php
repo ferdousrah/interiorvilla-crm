@@ -137,7 +137,7 @@ class PurchaseOrderController extends Controller
 
         $purchaseOrder->load(['vendor', 'project', 'items.inventoryItem', 'grns.items', 'payments']);
 
-        return Inertia::render('Procurement/PurchaseOrders/Show', ['purchaseOrder' => $purchaseOrder]);
+        return Inertia::render('Procurement/PurchaseOrders/Show', ['po' => $purchaseOrder]);
     }
 
     public function edit(PurchaseOrder $purchaseOrder): Response

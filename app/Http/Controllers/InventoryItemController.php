@@ -99,6 +99,7 @@ class InventoryItemController extends Controller
 
         $validated = $request->validate([
             'name' => 'required|string|max:200',
+            'sku' => 'nullable|string|max:80',
             'category_id' => 'nullable|uuid|exists:item_categories,id',
             'unit' => 'required|string|max:50',
             'reorder_level' => 'nullable|numeric|min:0',
@@ -158,6 +159,7 @@ class InventoryItemController extends Controller
 
         $validated = $request->validate([
             'name' => 'required|string|max:200',
+            'sku' => 'nullable|string|max:80',
             'category_id' => 'nullable|uuid|exists:item_categories,id',
             'unit' => 'required|string|max:50',
             'reorder_level' => 'nullable|numeric|min:0',

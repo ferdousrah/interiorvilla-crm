@@ -9,7 +9,7 @@ export default function InventoryItemEdit({ item, categories = [] }) {
         category_id: item.category_id ?? '',
         unit: item.unit, sku: item.sku ?? '',
         reorder_level: item.reorder_level ?? '0',
-        unit_cost: item.unit_cost ?? '',
+        standard_rate: item.standard_rate ?? '',
         description: item.description ?? '',
         is_active: item.is_active,
     });
@@ -45,8 +45,9 @@ export default function InventoryItemEdit({ item, categories = [] }) {
                         <FormField label="Unit" error={errors.unit} required>
                             <input className="form-input" value={data.unit} onChange={e => setData('unit', e.target.value)} />
                         </FormField>
-                        <FormField label="Unit Cost (৳)" error={errors.unit_cost}>
-                            <input type="number" className="form-input" value={data.unit_cost} onChange={e => setData('unit_cost', e.target.value)} />
+                        <FormField label="Unit Cost (৳)" error={errors.standard_rate}>
+                            <input type="number" min="0" step="0.01" className="form-input"
+                                value={data.standard_rate} onChange={e => setData('standard_rate', e.target.value)} />
                         </FormField>
                         <FormField label="Reorder Level" error={errors.reorder_level}>
                             <input type="number" className="form-input" value={data.reorder_level} onChange={e => setData('reorder_level', e.target.value)} />

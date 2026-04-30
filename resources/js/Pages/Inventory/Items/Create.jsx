@@ -6,7 +6,7 @@ import FormField from '@/Components/FormField';
 export default function InventoryItemCreate({ warehouses = [], categories = [] }) {
     const { data, setData, post, processing, errors } = useForm({
         name: '', category_id: '', unit: '', sku: '',
-        reorder_level: '0', initial_stock: '0', unit_cost: '',
+        reorder_level: '0', initial_stock: '0', standard_rate: '',
         warehouse_id: warehouses[0]?.id ?? '', description: '',
     });
     function submit(e) {
@@ -41,8 +41,9 @@ export default function InventoryItemCreate({ warehouses = [], categories = [] }
                         <FormField label="Unit" error={errors.unit} required>
                             <input className="form-input" value={data.unit} placeholder="pcs, kg, m…" onChange={e => setData('unit', e.target.value)} />
                         </FormField>
-                        <FormField label="Unit Cost (৳)" error={errors.unit_cost}>
-                            <input type="number" className="form-input" value={data.unit_cost} onChange={e => setData('unit_cost', e.target.value)} />
+                        <FormField label="Unit Cost (৳)" error={errors.standard_rate}>
+                            <input type="number" min="0" step="0.01" className="form-input"
+                                value={data.standard_rate} onChange={e => setData('standard_rate', e.target.value)} />
                         </FormField>
                         <FormField label="Reorder Level" error={errors.reorder_level}>
                             <input type="number" className="form-input" value={data.reorder_level} onChange={e => setData('reorder_level', e.target.value)} />

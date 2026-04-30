@@ -13,7 +13,7 @@ class InventoryItem extends Model
     use HasUuids, SoftDeletes;
 
     protected $fillable = [
-        'code', 'name', 'category_id', 'unit', 'reorder_level',
+        'code', 'sku', 'name', 'category_id', 'unit', 'reorder_level',
         'standard_rate', 'description', 'is_active',
     ];
 

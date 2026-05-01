@@ -175,6 +175,7 @@ Route::middleware('auth')->group(function () {
             Route::get('adjustments', [StockTransactionController::class, 'adjustmentForm'])->name('adjustments');
             Route::post('adjustments', [StockTransactionController::class, 'adjustment'])->name('adjustments.store');
             Route::get('report', [StockTransactionController::class, 'report'])->name('report');
+            Route::get('stock-report', [StockTransactionController::class, 'currentStockReport'])->name('stock-report');
             Route::resource('warehouses', WarehouseController::class);
             Route::get('categories', [InventoryCategoryController::class, 'index'])->name('categories.index');
             Route::post('categories', [InventoryCategoryController::class, 'store'])->name('categories.store');

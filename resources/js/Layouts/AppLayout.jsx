@@ -66,7 +66,8 @@ const navGroups = [
             { name: 'Warehouses', href: '/inventory/warehouses' },
             { name: 'Stock Issue', href: '/inventory/issue' },
             { name: 'Adjustments', href: '/inventory/adjustments' },
-            { name: 'Report', href: '/inventory/report' },
+            { name: 'Current Stock', href: '/inventory/stock-report' },
+            { name: 'Transaction Report', href: '/inventory/report' },
         ],
     },
     {

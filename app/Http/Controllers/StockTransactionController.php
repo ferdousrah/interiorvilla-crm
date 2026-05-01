@@ -280,4 +280,70 @@ class StockTransactionController extends Controller
             'filters'  => $filters,
         ]);
     }
+
+    /**
+     * Current stock balance per item per warehouse.
+     * Sums all stock_transactions and presents as a printable matrix.
+     */
+    public function currentStockReport(Request $request): Response
+    {
+        $this->authorize('viewAny', InventoryItem::class);
+
+        $warehouses = Warehouse::where('is_active', true)
+            ->orderBy('name')
+            ->get(['id', 'name']);
+
+        $items = InventoryItem::where('is_active', true)
+            ->with('category:id,name')
+            ->orderBy('name')
+            ->get(['id', 'code', 'sku', 'name', 'unit', 'reorder_level', 'category_id', 'standard_rate']);
+
+        // Sum balances grouped by (inventory_item_id, warehouse_id)
+        $balances = StockTransaction::selectRaw('inventory_item_id, warehouse_id, SUM(quantity) as balance')
+            ->groupBy('inventory_item_id', 'warehouse_id')
+            ->get();
+
+        // Build a lookup: balanceMap[itemId][warehouseId] = balance
+        $balanceMap = [];
+        foreach ($balances as $b) {
+            $balanceMap[$b->inventory_item_id][$b->warehouse_id] = (float) $b->balance;
+        }
+
+        $rows = $items->map(function ($item) use ($warehouses, $balanceMap) {
+            $perWarehouse = [];
+            $total = 0;
+            foreach ($warehouses as $w) {
+                $bal = $balanceMap[$item->id][$w->id] ?? 0;
+                $perWarehouse[$w->id] = $bal;
+                $total += $bal;
+            }
+            return [
+                'id'             => $item->id,
+                'code'           => $item->code,
+                'sku'            => $item->sku,
+                'name'           => $item->name,
+                'unit'           => $item->unit,
+                'category'       => $item->category?->name,
+                'reorder_level'  => (float) ($item->reorder_level ?? 0),
+                'standard_rate'  => (float) ($item->standard_rate ?? 0),
+                'per_warehouse'  => $perWarehouse,
+                'total_qty'      => $total,
+                'total_value'    => $total * (float) ($item->standard_rate ?? 0),
+                'low_stock'      => $item->reorder_level && $total < (float) $item->reorder_level,
+            ];
+        });
+
+        return Inertia::render('Inventory/StockReport', [
+            'warehouses' => $warehouses,
+            'rows'       => $rows,
+            'generatedAt'=> now()->toIso8601String(),
+            'company'    => [
+                'name'    => \App\Models\Setting::get('company_name', 'Interior Villa'),
+                'logo'    => \App\Models\Setting::get('company_logo')
+                                ? asset('storage/' . \App\Models\Setting::get('company_logo'))
+                                : null,
+                'address' => \App\Models\Setting::get('company_address'),
+            ],
+        ]);
+    }
 }

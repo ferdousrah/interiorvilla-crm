@@ -4,7 +4,7 @@ import PageHeader from '@/Components/PageHeader';
 import FormField from '@/Components/FormField';
 
 export default function InventoryIssue({ items = [], projects = [], warehouses = [] }) {
-    const { data, setData, post, processing, errors } = useForm({
+    const { data, setData, post, processing, errors, reset } = useForm({
         project_id: '',
         warehouse_id: warehouses[0]?.id ?? '',
         issue_date: new Date().toISOString().substring(0, 10),
@@ -27,7 +27,9 @@ export default function InventoryIssue({ items = [], projects = [], warehouses =
 
     function submit(e) {
         e.preventDefault();
-        post(route('inventory.issue.store'));
+        post(route('inventory.issue.store'), {
+            onSuccess: () => reset(),
+        });
     }
 
     return (

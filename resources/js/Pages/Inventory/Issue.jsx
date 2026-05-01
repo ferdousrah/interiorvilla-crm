@@ -22,8 +22,10 @@ export default function InventoryIssue({ items, projects }) {
                     <FormField label="Item" error={errors.inventory_item_id} required>
                         <select className="form-input" value={data.inventory_item_id} onChange={e => setData('inventory_item_id', e.target.value)}>
                             <option value="">Select Item…</option>
-                            {(items ?? []).filter(i => i.is_active).map(i => (
-                                <option key={i.id} value={i.id}>{i.name} (Stock: {i.current_stock} {i.unit})</option>
+                            {(items ?? []).map(i => (
+                                <option key={i.id} value={i.id}>
+                                    {i.code ? `${i.code} — ` : ''}{i.name}{i.current_stock != null ? ` (Stock: ${i.current_stock} ${i.unit})` : ` (${i.unit})`}
+                                </option>
                             ))}
                         </select>
                     </FormField>

@@ -39,4 +39,25 @@ class GoodsReceiptNote extends Model
     {
         return $this->hasMany(GrnItem::class, 'grn_id');
     }
+
+    /**
+     * Preserve FK columns + expose camelCase relations under their original
+     * keys so the React frontend can read `grn.purchaseOrder` / `grn.receivedBy`.
+     */
+    public function toArray(): array
+    {
+        $array = parent::toArray();
+
+        foreach ([
+            'purchaseOrder' => 'po_id',
+            'receivedBy'    => 'received_by',
+        ] as $rel => $fk) {
+            if ($this->relationLoaded($rel)) {
+                $array[$fk]  = $this->getAttribute($fk);
+                $array[$rel] = $this->{$rel}?->toArray();
+            }
+        }
+
+        return $array;
+    }
 }

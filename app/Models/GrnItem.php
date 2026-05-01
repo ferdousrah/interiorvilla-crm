@@ -30,4 +30,14 @@ class GrnItem extends Model
     {
         return $this->belongsTo(PurchaseOrderItem::class, 'po_item_id');
     }
+
+    public function toArray(): array
+    {
+        $array = parent::toArray();
+        if ($this->relationLoaded('poItem')) {
+            $array['po_item_id'] = $this->getAttribute('po_item_id');
+            $array['poItem']     = $this->poItem?->toArray();
+        }
+        return $array;
+    }
 }

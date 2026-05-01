@@ -7,7 +7,7 @@ import { useState } from 'react';
 export default function GRNCreate({ purchaseOrders, warehouses }) {
     const [selectedPO, setSelectedPO] = useState(null);
     const { data, setData, post, processing, errors } = useForm({
-        purchase_order_id: '', warehouse_id: '', received_date: new Date().toISOString().substring(0, 10),
+        po_id: '', warehouse_id: '', received_date: new Date().toISOString().substring(0, 10),
         notes: '', items: [],
     });
 
@@ -16,21 +16,22 @@ export default function GRNCreate({ purchaseOrders, warehouses }) {
         setSelectedPO(po);
         setData(d => ({
             ...d,
-            purchase_order_id: poId,
+            po_id: poId,
             items: po ? po.items.map(item => ({
-                purchase_order_item_id: item.id,
-                inventory_item_id: '',
+                po_item_id: item.id,
                 description: item.description,
                 unit: item.unit,
                 quantity_ordered: item.quantity_ordered,
                 quantity_received: item.quantity_ordered - (item.quantity_received ?? 0),
+                condition: 'good',
+                notes: '',
             })) : [],
         }));
     }
 
-    function updateItemQty(i, qty) {
+    function updateItem(i, field, value) {
         const items = [...data.items];
-        items[i] = { ...items[i], quantity_received: qty };
+        items[i] = { ...items[i], [field]: value };
         setData('items', items);
     }
 
@@ -47,8 +48,8 @@ export default function GRNCreate({ purchaseOrders, warehouses }) {
                 <form onSubmit={submit} className="space-y-4">
                     <div className="card p-6">
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                            <FormField label="Purchase Order" error={errors.purchase_order_id} required>
-                                <select className="form-input" value={data.purchase_order_id} onChange={e => selectPO(e.target.value)}>
+                            <FormField label="Purchase Order" error={errors.po_id} required>
+                                <select className="form-input" value={data.po_id} onChange={e => selectPO(e.target.value)}>
                                     <option value="">Select PO…</option>
                                     {(purchaseOrders ?? []).map(po => (
                                         <option key={po.id} value={po.id}>
@@ -71,24 +72,36 @@ export default function GRNCreate({ purchaseOrders, warehouses }) {
 
                     {data.items.length > 0 && (
                         <div className="card p-4">
-                            <h3 className="font-medium text-sm mb-3">Items to Receive</h3>
+                            <h3 className="font-semibold text-sm text-gray-900 mb-3">Items to Receive</h3>
                             <table className="min-w-full text-sm">
-                                <thead><tr className="text-xs text-gray-500">
-                                    <th className="text-left pb-2">Description</th>
-                                    <th className="text-left pb-2 w-20">Unit</th>
-                                    <th className="text-left pb-2 w-24">Ordered</th>
-                                    <th className="text-left pb-2 w-28">Receiving</th>
-                                </tr></thead>
+                                <thead>
+                                    <tr className="text-xs font-semibold text-gray-500 uppercase border-b border-gray-200">
+                                        <th className="text-left pb-2 px-2">Description</th>
+                                        <th className="text-left pb-2 px-2 w-20">Unit</th>
+                                        <th className="text-right pb-2 px-2 w-20">Ordered</th>
+                                        <th className="text-right pb-2 px-2 w-24">Receiving</th>
+                                        <th className="text-left pb-2 px-2 w-32">Condition</th>
+                                    </tr>
+                                </thead>
                                 <tbody>
                                     {data.items.map((item, i) => (
-                                        <tr key={i}>
-                                            <td className="pr-2 pb-2 text-gray-700">{item.description}</td>
-                                            <td className="pr-2 pb-2 text-gray-500">{item.unit}</td>
-                                            <td className="pr-2 pb-2 text-gray-500">{item.quantity_ordered}</td>
-                                            <td className="pr-2 pb-2">
-                                                <input type="number" className="form-input text-sm w-full" value={item.quantity_received}
-                                                    max={item.quantity_ordered} min={0}
-                                                    onChange={e => updateItemQty(i, e.target.value)} />
+                                        <tr key={i} className="align-top">
+                                            <td className="px-2 py-1.5 text-gray-700">{item.description}</td>
+                                            <td className="px-2 py-1.5 text-gray-500">{item.unit}</td>
+                                            <td className="px-2 py-1.5 text-right text-gray-500 tabular-nums">{item.quantity_ordered}</td>
+                                            <td className="px-2 py-1.5">
+                                                <input type="number" className="form-input text-sm w-full text-right tabular-nums"
+                                                    value={item.quantity_received}
+                                                    max={item.quantity_ordered} min={0} step="0.01"
+                                                    onChange={e => updateItem(i, 'quantity_received', e.target.value)} />
+                                            </td>
+                                            <td className="px-2 py-1.5">
+                                                <select className="form-input text-sm w-full" value={item.condition}
+                                                    onChange={e => updateItem(i, 'condition', e.target.value)}>
+                                                    <option value="good">Good</option>
+                                                    <option value="partial">Partial</option>
+                                                    <option value="damaged">Damaged</option>
+                                                </select>
                                             </td>
                                         </tr>
                                     ))}
@@ -102,7 +115,7 @@ export default function GRNCreate({ purchaseOrders, warehouses }) {
                     </FormField>
 
                     <div className="flex gap-3">
-                        <button type="submit" disabled={processing || !data.purchase_order_id} className="btn btn-primary">
+                        <button type="submit" disabled={processing || !data.po_id} className="btn btn-primary">
                             {processing ? 'Recording…' : 'Record GRN'}
                         </button>
                         <a href={route('procurement.grn.index')} className="btn">Cancel</a>

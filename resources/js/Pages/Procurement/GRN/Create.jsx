@@ -50,7 +50,11 @@ export default function GRNCreate({ purchaseOrders, warehouses }) {
                             <FormField label="Purchase Order" error={errors.purchase_order_id} required>
                                 <select className="form-input" value={data.purchase_order_id} onChange={e => selectPO(e.target.value)}>
                                     <option value="">Select PO…</option>
-                                    {(purchaseOrders ?? []).map(po => <option key={po.id} value={po.id}>{po.code} — {po.vendor?.name}</option>)}
+                                    {(purchaseOrders ?? []).map(po => (
+                                        <option key={po.id} value={po.id}>
+                                            {po.code} — {po.vendor?.name ?? 'No vendor'}{po.status ? ` (${po.status.replace('_', ' ')})` : ''}
+                                        </option>
+                                    ))}
                                 </select>
                             </FormField>
                             <FormField label="Warehouse" error={errors.warehouse_id} required>

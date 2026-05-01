@@ -40,8 +40,17 @@ class GRNController extends Controller
         return Inertia::render('Procurement/GRN/Create', [
             'po' => $po,
             'warehouses' => Warehouse::where('is_active', true)->get(),
-            'purchaseOrders' => PurchaseOrder::whereIn('status', ['sent', 'partially_received'])
-                ->with('vendor')->select('id', 'code', 'vendor_id')->get(),
+            'purchaseOrders' => PurchaseOrder::whereNotIn('status', ['received', 'cancelled'])
+                ->with('vendor')
+                ->orderByDesc('order_date')
+                ->select('id', 'code', 'vendor_id', 'status')
+                ->get()
+                ->map(fn($po) => [
+                    'id'     => $po->id,
+                    'code'   => $po->code,
+                    'status' => $po->status,
+                    'vendor' => $po->vendor ? ['id' => $po->vendor->id, 'name' => $po->vendor->name] : null,
+                ]),
         ]);
     }
 

@@ -2,8 +2,9 @@ import { Head, useForm } from '@inertiajs/react';
 import AppLayout from '@/Layouts/AppLayout';
 import PageHeader from '@/Components/PageHeader';
 import FormField from '@/Components/FormField';
+import { formatDate } from '@/utils/formatters';
 
-export default function InventoryAdjustments({ items = [], warehouses = [] }) {
+export default function InventoryAdjustments({ items = [], warehouses = [], history = [] }) {
     const { data, setData, post, processing, errors, reset } = useForm({
         inventory_item_id: '',
         warehouse_id: warehouses[0]?.id ?? '',
@@ -73,6 +74,61 @@ export default function InventoryAdjustments({ items = [], warehouses = [] }) {
                         <a href={route('inventory.items.index')} className="btn">Cancel</a>
                     </div>
                 </form>
+
+                {/* Recent adjustments history */}
+                <div className="card mt-6 overflow-hidden">
+                    <div className="px-4 py-3 border-b border-gray-100 bg-gray-50/50 flex items-center justify-between">
+                        <h3 className="text-sm font-bold text-gray-900">Recent Adjustments</h3>
+                        <span className="text-xs text-gray-500">Last {history.length} entries</span>
+                    </div>
+                    <div className="overflow-x-auto">
+                        <table className="min-w-full text-sm">
+                            <thead className="bg-gray-50 border-b border-gray-200">
+                                <tr className="text-xs font-semibold text-gray-500 uppercase">
+                                    <th className="px-4 py-2 text-left">Date</th>
+                                    <th className="px-4 py-2 text-left">Item</th>
+                                    <th className="px-4 py-2 text-left">Warehouse</th>
+                                    <th className="px-4 py-2 text-right">System</th>
+                                    <th className="px-4 py-2 text-right">Physical</th>
+                                    <th className="px-4 py-2 text-right">Variance</th>
+                                    <th className="px-4 py-2 text-left">Reason</th>
+                                    <th className="px-4 py-2 text-left">By</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-100">
+                                {history.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={8} className="px-4 py-8 text-center text-gray-400 italic">
+                                            No adjustments recorded yet.
+                                        </td>
+                                    </tr>
+                                ) : history.map(h => {
+                                    const positive = h.variance > 0;
+                                    const negative = h.variance < 0;
+                                    return (
+                                        <tr key={h.id} className="hover:bg-gray-50/50">
+                                            <td className="px-4 py-2.5 text-xs whitespace-nowrap">{formatDate(h.adjustment_date)}</td>
+                                            <td className="px-4 py-2.5">
+                                                <div className="text-sm font-medium text-gray-900">{h.item?.name ?? '—'}</div>
+                                                <div className="text-[11px] text-gray-500">{h.item?.code}</div>
+                                            </td>
+                                            <td className="px-4 py-2.5 text-xs">{h.warehouse?.name ?? '—'}</td>
+                                            <td className="px-4 py-2.5 text-right text-xs text-gray-600 tabular-nums">{h.system_count}</td>
+                                            <td className="px-4 py-2.5 text-right text-sm font-semibold tabular-nums">{h.physical_count}</td>
+                                            <td className={`px-4 py-2.5 text-right font-bold tabular-nums ${
+                                                positive ? 'text-emerald-600' : negative ? 'text-rose-600' : 'text-gray-500'
+                                            }`}>
+                                                {positive ? '+' : ''}{h.variance} {h.item?.unit ?? ''}
+                                            </td>
+                                            <td className="px-4 py-2.5 text-xs text-gray-600 max-w-[16rem] truncate" title={h.reason}>{h.reason ?? '—'}</td>
+                                            <td className="px-4 py-2.5 text-xs text-gray-600">{h.adjusted_by ?? '—'}</td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
         </AppLayout>
     );

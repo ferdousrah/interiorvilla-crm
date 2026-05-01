@@ -43,10 +43,34 @@ class StockTransactionController extends Controller
     {
         $this->authorize('create', InventoryItem::class);
 
+        // Recent project-issue transactions (negative-quantity rows)
+        $recent = StockTransaction::with(['inventoryItem:id,code,name,unit', 'warehouse:id,name', 'project:id,code,name', 'createdBy:id,name'])
+            ->where('type', 'project_issue')
+            ->orderByDesc('transaction_date')
+            ->orderByDesc('created_at')
+            ->limit(50)
+            ->get()
+            ->map(fn($t) => [
+                'id'              => $t->id,
+                'transaction_date'=> $t->transaction_date,
+                'item'            => $t->inventoryItem ? [
+                    'id'   => $t->inventoryItem->id,
+                    'code' => $t->inventoryItem->code,
+                    'name' => $t->inventoryItem->name,
+                    'unit' => $t->inventoryItem->unit,
+                ] : null,
+                'warehouse'       => $t->warehouse ? ['id' => $t->warehouse->id, 'name' => $t->warehouse->name] : null,
+                'project'         => $t->project ? ['id' => $t->project->id, 'code' => $t->project->code, 'name' => $t->project->name] : null,
+                'quantity'        => abs((float) $t->quantity),
+                'notes'           => $t->notes,
+                'created_by'      => $t->createdBy?->name,
+            ]);
+
         return Inertia::render('Inventory/Issue', [
-            'projects' => Project::whereNotIn('status', ['completed', 'cancelled'])->select('id', 'name', 'code')->get(),
+            'projects'   => Project::whereNotIn('status', ['completed', 'cancelled'])->select('id', 'name', 'code')->get(),
             'warehouses' => Warehouse::where('is_active', true)->get(),
-            'items' => InventoryItem::where('is_active', true)->select('id', 'name', 'code', 'unit')->get(),
+            'items'      => InventoryItem::where('is_active', true)->select('id', 'name', 'code', 'unit')->get(),
+            'history'    => $recent,
         ]);
     }
 
@@ -97,9 +121,32 @@ class StockTransactionController extends Controller
     {
         $this->authorize('create', InventoryItem::class);
 
+        $recent = StockAdjustment::with(['inventoryItem:id,code,name,unit', 'warehouse:id,name', 'adjustedBy:id,name'])
+            ->orderByDesc('adjustment_date')
+            ->orderByDesc('created_at')
+            ->limit(50)
+            ->get()
+            ->map(fn($a) => [
+                'id'              => $a->id,
+                'adjustment_date' => $a->adjustment_date,
+                'item'            => $a->inventoryItem ? [
+                    'id'   => $a->inventoryItem->id,
+                    'code' => $a->inventoryItem->code,
+                    'name' => $a->inventoryItem->name,
+                    'unit' => $a->inventoryItem->unit,
+                ] : null,
+                'warehouse'       => $a->warehouse ? ['id' => $a->warehouse->id, 'name' => $a->warehouse->name] : null,
+                'physical_count'  => (float) $a->physical_count,
+                'system_count'    => (float) $a->system_count,
+                'variance'        => (float) $a->variance,
+                'reason'          => $a->reason,
+                'adjusted_by'     => $a->adjustedBy?->name,
+            ]);
+
         return Inertia::render('Inventory/Adjustments', [
             'warehouses' => Warehouse::where('is_active', true)->get(),
-            'items' => InventoryItem::where('is_active', true)->select('id', 'name', 'code', 'unit')->get(),
+            'items'      => InventoryItem::where('is_active', true)->select('id', 'name', 'code', 'unit')->get(),
+            'history'    => $recent,
         ]);
     }
 

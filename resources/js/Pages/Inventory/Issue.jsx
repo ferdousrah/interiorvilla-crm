@@ -2,8 +2,9 @@ import { Head, useForm } from '@inertiajs/react';
 import AppLayout from '@/Layouts/AppLayout';
 import PageHeader from '@/Components/PageHeader';
 import FormField from '@/Components/FormField';
+import { formatDate } from '@/utils/formatters';
 
-export default function InventoryIssue({ items = [], projects = [], warehouses = [] }) {
+export default function InventoryIssue({ items = [], projects = [], warehouses = [], history = [] }) {
     const { data, setData, post, processing, errors, reset } = useForm({
         project_id: '',
         warehouse_id: warehouses[0]?.id ?? '',
@@ -122,6 +123,53 @@ export default function InventoryIssue({ items = [], projects = [], warehouses =
                         <a href={route('inventory.items.index')} className="btn">Cancel</a>
                     </div>
                 </form>
+
+                {/* Recent issues history */}
+                <div className="card mt-6 overflow-hidden">
+                    <div className="px-4 py-3 border-b border-gray-100 bg-gray-50/50 flex items-center justify-between">
+                        <h3 className="text-sm font-bold text-gray-900">Recent Issues</h3>
+                        <span className="text-xs text-gray-500">Last {history.length} entries</span>
+                    </div>
+                    <div className="overflow-x-auto">
+                        <table className="min-w-full text-sm">
+                            <thead className="bg-gray-50 border-b border-gray-200">
+                                <tr className="text-xs font-semibold text-gray-500 uppercase">
+                                    <th className="px-4 py-2 text-left">Date</th>
+                                    <th className="px-4 py-2 text-left">Item</th>
+                                    <th className="px-4 py-2 text-left">Warehouse</th>
+                                    <th className="px-4 py-2 text-left">Project</th>
+                                    <th className="px-4 py-2 text-right">Qty Issued</th>
+                                    <th className="px-4 py-2 text-left">Notes</th>
+                                    <th className="px-4 py-2 text-left">By</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-100">
+                                {history.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={7} className="px-4 py-8 text-center text-gray-400 italic">
+                                            No issues recorded yet.
+                                        </td>
+                                    </tr>
+                                ) : history.map(h => (
+                                    <tr key={h.id} className="hover:bg-gray-50/50">
+                                        <td className="px-4 py-2.5 text-xs whitespace-nowrap">{formatDate(h.transaction_date)}</td>
+                                        <td className="px-4 py-2.5">
+                                            <div className="text-sm font-medium text-gray-900">{h.item?.name ?? '—'}</div>
+                                            <div className="text-[11px] text-gray-500">{h.item?.code}</div>
+                                        </td>
+                                        <td className="px-4 py-2.5 text-xs">{h.warehouse?.name ?? '—'}</td>
+                                        <td className="px-4 py-2.5 text-xs">{h.project?.name ?? '—'}</td>
+                                        <td className="px-4 py-2.5 text-right font-bold text-rose-600 tabular-nums">
+                                            −{h.quantity} {h.item?.unit ?? ''}
+                                        </td>
+                                        <td className="px-4 py-2.5 text-xs text-gray-600 max-w-[16rem] truncate" title={h.notes}>{h.notes ?? '—'}</td>
+                                        <td className="px-4 py-2.5 text-xs text-gray-600">{h.created_by ?? '—'}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
         </AppLayout>
     );

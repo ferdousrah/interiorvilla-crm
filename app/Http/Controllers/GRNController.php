@@ -41,15 +41,22 @@ class GRNController extends Controller
             'po' => $po,
             'warehouses' => Warehouse::where('is_active', true)->get(),
             'purchaseOrders' => PurchaseOrder::whereNotIn('status', ['received', 'cancelled'])
-                ->with('vendor')
+                ->with(['vendor', 'items'])
                 ->orderByDesc('order_date')
-                ->select('id', 'code', 'vendor_id', 'status')
                 ->get()
                 ->map(fn($po) => [
                     'id'     => $po->id,
                     'code'   => $po->code,
                     'status' => $po->status,
                     'vendor' => $po->vendor ? ['id' => $po->vendor->id, 'name' => $po->vendor->name] : null,
+                    'items'  => $po->items->map(fn($it) => [
+                        'id'                => $it->id,
+                        'inventory_item_id' => $it->inventory_item_id,
+                        'description'       => $it->description,
+                        'unit'              => $it->unit,
+                        'quantity_ordered'  => (float) $it->quantity_ordered,
+                        'quantity_received' => (float) ($it->quantity_received ?? 0),
+                    ]),
                 ]),
         ]);
     }

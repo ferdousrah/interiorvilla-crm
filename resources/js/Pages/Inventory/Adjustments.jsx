@@ -24,8 +24,8 @@ export default function InventoryAdjustments({ items = [], warehouses = [], hist
         <AppLayout>
             <Head title="Stock Adjustment" />
             <PageHeader title="Stock Adjustment" back={route('inventory.items.index')} />
-            <div className="p-4 sm:p-6 max-w-2xl">
-                <form onSubmit={submit} className="card p-6 space-y-4">
+            <div className="p-4 sm:p-6 max-w-6xl">
+                <form onSubmit={submit} className="card p-6 space-y-4 max-w-2xl">
                     <p className="text-xs text-gray-600 bg-blue-50 border border-blue-200 rounded-md p-3 leading-relaxed">
                         Enter the <strong>actual physical count</strong> you observed in the warehouse during stocktake.
                         The system will compare it to its recorded count and create an adjustment for the variance.

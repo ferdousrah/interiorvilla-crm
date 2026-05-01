@@ -37,8 +37,8 @@ export default function InventoryIssue({ items = [], projects = [], warehouses =
         <AppLayout>
             <Head title="Issue Stock" />
             <PageHeader title="Issue Stock to Project" back={route('inventory.items.index')} />
-            <div className="p-4 sm:p-6 max-w-4xl">
-                <form onSubmit={submit} className="card p-6 space-y-4">
+            <div className="p-4 sm:p-6 max-w-6xl">
+                <form onSubmit={submit} className="card p-6 space-y-4 max-w-4xl">
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                         <FormField label="Project" error={errors.project_id} required>
                             <select className="form-input" value={data.project_id} onChange={e => setData('project_id', e.target.value)}>

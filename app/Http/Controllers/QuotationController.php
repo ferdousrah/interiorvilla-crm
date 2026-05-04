@@ -55,6 +55,7 @@ class QuotationController extends Controller
             'leads'             => Lead::whereNotIn('status', ['won', 'lost'])->orderBy('name')->get(['id', 'name', 'phone', 'estimated_value', 'address']),
             'projects'          => Project::whereNotIn('status', ['completed', 'cancelled'])->orderBy('name')->get(['id', 'name', 'code']),
             'serviceCategories' => config('services_catalog.service_categories'),
+            'defaultTerms'      => Setting::get('quotation_terms') ?: null,
             'prefill'           => [
                 'lead_id'    => $request->get('lead_id'),
                 'client_id'  => $request->get('client_id'),

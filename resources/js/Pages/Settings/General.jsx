@@ -36,6 +36,13 @@ export default function GeneralSettings({ settings }) {
         );
     }
 
+    const DEFAULT_QUOTATION_TERMS = `1. This quotation is valid for 30 days from the date of issue.
+2. 30% advance payment required to start work.
+3. 40% payment upon material delivery.
+4. 30% balance upon project completion.
+5. Any additions/alterations will be charged separately.
+6. All disputes subject to local jurisdiction.`;
+
     const { data, setData, put, processing, errors } = useForm({
         app_name:          settings.app_name ?? '',
         company_name:      settings.company_name ?? '',
@@ -51,6 +58,7 @@ export default function GeneralSettings({ settings }) {
         default_tax_pct:   settings.default_tax_pct ?? '0',
         theme_color:       settings.theme_color ?? 'indigo',
         sidebar_color:     settings.sidebar_color ?? 'slate_dark',
+        quotation_terms:   settings.quotation_terms ?? DEFAULT_QUOTATION_TERMS,
     });
 
     const currentLogo = settings.company_logo
@@ -354,6 +362,24 @@ export default function GeneralSettings({ settings }) {
                                     placeholder="CEO / Managing Director" />
                             </FormField>
                         </div>
+                    </div>
+
+                    {/* ── Quotation Terms & Conditions ────── */}
+                    <div className="card p-5 sm:p-6">
+                        <h3 className="text-sm font-semibold text-gray-700 mb-1 flex items-center gap-2">
+                            <BuildingOfficeIcon className="w-5 h-5 text-gray-400" /> Quotation Terms &amp; Conditions
+                        </h3>
+                        <p className="text-xs text-gray-500 mb-3">
+                            Default terms shown on every new quotation. You can still override them per-quotation when creating one.
+                        </p>
+                        <FormField error={errors.quotation_terms}>
+                            <textarea className="form-input text-sm leading-relaxed font-mono"
+                                rows={8}
+                                value={data.quotation_terms}
+                                onChange={e => setData('quotation_terms', e.target.value)}
+                                placeholder="One condition per line — e.g.&#10;1. This quotation is valid for 30 days.&#10;2. 30% advance required to start." />
+                            <p className="text-[10px] text-gray-400 mt-1">Tip: number each line for cleaner display in the printed quotation.</p>
+                        </FormField>
                     </div>
 
                     {/* ── Theme Color ────────────────── */}

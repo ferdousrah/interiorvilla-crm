@@ -37,6 +37,7 @@ class SettingController extends Controller
             'default_tax_pct'   => 'nullable|numeric|min:0|max:100',
             'theme_color'       => 'nullable|string|max:30',
             'sidebar_color'     => 'nullable|string|max:30',
+            'quotation_terms'   => 'nullable|string|max:5000',
         ]);
 
         $fields = [
@@ -45,6 +46,7 @@ class SettingController extends Controller
             'company_ceo_name', 'company_ceo_title',
             'currency_symbol', 'tax_label', 'default_tax_pct',
             'theme_color', 'sidebar_color',
+            'quotation_terms',
         ];
 
         foreach ($fields as $key) {

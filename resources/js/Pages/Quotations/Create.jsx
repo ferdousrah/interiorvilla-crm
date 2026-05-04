@@ -21,7 +21,7 @@ const DEFAULT_CATEGORIES = [
 
 const UNITS = ['sft', 'rft', 'pcs', 'set', 'ls', 'nos', 'kg', 'bag', 'box', 'mtr', 'rmt'];
 
-const DEFAULT_TERMS = `1. This quotation is valid for 30 days from the date of issue.
+const FALLBACK_TERMS = `1. This quotation is valid for 30 days from the date of issue.
 2. 30% advance payment required to start work.
 3. 40% payment upon material delivery.
 4. 30% balance upon project completion.
@@ -37,7 +37,7 @@ function fmt(n) {
     return v.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-export default function QuotationCreate({ clients, leads, projects, serviceCategories = {}, prefill }) {
+export default function QuotationCreate({ clients, leads, projects, serviceCategories = {}, prefill, defaultTerms }) {
     const today = new Date().toISOString().substring(0, 10);
     const { data, setData, post, processing, errors } = useForm({
         client_id:             prefill?.client_id ?? '',
@@ -53,7 +53,7 @@ export default function QuotationCreate({ clients, leads, projects, serviceCateg
         vat_pct:               '',
         transportation_amount: '0',
         supervision_pct:       '10',
-        terms:                 DEFAULT_TERMS,
+        terms:                 defaultTerms ?? FALLBACK_TERMS,
         notes:                 '',
         items: [],
     });

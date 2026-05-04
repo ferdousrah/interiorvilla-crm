@@ -5,7 +5,7 @@ import AppLayout from '@/Layouts/AppLayout';
 import PageHeader from '@/Components/PageHeader';
 import Modal from '@/Components/Modal';
 import FormField from '@/Components/FormField';
-import { PlusIcon, PencilIcon, TrashIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, PencilIcon, TrashIcon, MagnifyingGlassIcon, Cog6ToothIcon, CheckIcon, XMarkIcon } from '@heroicons/react/24/outline';
 
 export default function MaterialsIndex(props) {
     const materials         = props.materials || {};
@@ -155,6 +155,7 @@ function MaterialModal({ open, material, serviceCategories, availableUnits, avai
     });
 
     const [savingLookup, setSavingLookup] = useState(false);
+    const [showUnitManager, setShowUnitManager] = useState(false);
 
     function addServiceType(group, type) {
         const exists = form.data.service_types.some(s => s.group === group && s.type === type);
@@ -247,6 +248,10 @@ function MaterialModal({ open, material, serviceCategories, availableUnits, avai
                                 className="btn text-sm flex items-center gap-1 px-2" title="Add a new unit">
                                 <PlusIcon className="w-4 h-4" /> New
                             </button>
+                            <button type="button" onClick={() => setShowUnitManager(true)}
+                                className="btn text-sm flex items-center gap-1 px-2" title="Edit / delete existing units">
+                                <Cog6ToothIcon className="w-4 h-4" />
+                            </button>
                         </div>
                     </FormField>
                     <FormField label="Default Rate (৳)" error={form.errors.default_rate}>
@@ -317,6 +322,106 @@ function MaterialModal({ open, material, serviceCategories, availableUnits, avai
                     <button type="button" onClick={onClose} className="btn">Cancel</button>
                 </div>
             </form>
+
+            <UnitManagerModal
+                open={showUnitManager}
+                units={availableUnits}
+                onClose={() => setShowUnitManager(false)}
+            />
+        </Modal>
+    );
+}
+
+function UnitManagerModal({ open, units, onClose }) {
+    const [editingId, setEditingId] = useState(null);
+    const [editCode, setEditCode] = useState('');
+    const [editName, setEditName] = useState('');
+    const [busy, setBusy] = useState(false);
+
+    function startEdit(u) {
+        setEditingId(u.id);
+        setEditCode(u.code);
+        setEditName(u.name ?? '');
+    }
+    function cancelEdit() {
+        setEditingId(null);
+        setEditCode('');
+        setEditName('');
+    }
+    async function saveEdit(u) {
+        if (!editCode.trim()) return;
+        try {
+            setBusy(true);
+            await axios.patch(route('api.material-units.update', u.id), {
+                code: editCode.trim(),
+                name: editName.trim() || null,
+            });
+            cancelEdit();
+            router.reload({ only: ['availableUnits', 'materials'], preserveScroll: true });
+        } catch (err) {
+            alert(err.response?.data?.message ?? 'Failed to update unit.');
+        } finally {
+            setBusy(false);
+        }
+    }
+    async function removeUnit(u) {
+        if (!confirm(`Delete unit "${u.code}"?`)) return;
+        try {
+            setBusy(true);
+            await axios.delete(route('api.material-units.destroy', u.id));
+            router.reload({ only: ['availableUnits'], preserveScroll: true });
+        } catch (err) {
+            alert(err.response?.data?.message ?? 'Failed to delete unit.');
+        } finally {
+            setBusy(false);
+        }
+    }
+
+    return (
+        <Modal open={open} onClose={onClose} title="Manage Units" size="md">
+            <div className="p-5 space-y-2 max-h-[70vh] overflow-y-auto">
+                {units.length === 0 && (
+                    <p className="text-sm text-gray-400 text-center py-6">No units yet.</p>
+                )}
+                {units.map(u => (
+                    <div key={u.id} className="flex items-center gap-2 p-2 border border-gray-100 rounded">
+                        {editingId === u.id ? (
+                            <>
+                                <input className="form-input text-sm flex-1" value={editCode}
+                                    onChange={e => setEditCode(e.target.value)} placeholder="code (e.g. sft)" />
+                                <input className="form-input text-sm flex-1" value={editName}
+                                    onChange={e => setEditName(e.target.value)} placeholder="display name (optional)" />
+                                <button onClick={() => saveEdit(u)} disabled={busy}
+                                    className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded" title="Save">
+                                    <CheckIcon className="w-4 h-4" />
+                                </button>
+                                <button onClick={cancelEdit} disabled={busy}
+                                    className="p-1.5 text-gray-400 hover:bg-gray-100 rounded" title="Cancel">
+                                    <XMarkIcon className="w-4 h-4" />
+                                </button>
+                            </>
+                        ) : (
+                            <>
+                                <div className="flex-1">
+                                    <span className="font-medium text-gray-900 text-sm">{u.name || u.code}</span>
+                                    <span className="text-xs text-gray-400 ml-2">({u.code})</span>
+                                </div>
+                                <button onClick={() => startEdit(u)} disabled={busy}
+                                    className="p-1.5 text-gray-400 hover:text-primary-600 hover:bg-gray-100 rounded" title="Rename">
+                                    <PencilIcon className="w-4 h-4" />
+                                </button>
+                                <button onClick={() => removeUnit(u)} disabled={busy}
+                                    className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-gray-100 rounded" title="Delete">
+                                    <TrashIcon className="w-4 h-4" />
+                                </button>
+                            </>
+                        )}
+                    </div>
+                ))}
+            </div>
+            <div className="flex justify-end px-5 py-3 border-t border-gray-100">
+                <button onClick={onClose} className="btn text-sm">Done</button>
+            </div>
         </Modal>
     );
 }

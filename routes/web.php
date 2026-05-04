@@ -75,6 +75,8 @@ Route::middleware('auth')->group(function () {
 
     // Quick-add lookups used by the Materials modal
     Route::post('/api/material-units', [MaterialController::class, 'storeUnit'])->name('api.material-units.store');
+    Route::patch('/api/material-units/{unit}', [MaterialController::class, 'updateUnit'])->name('api.material-units.update');
+    Route::delete('/api/material-units/{unit}', [MaterialController::class, 'destroyUnit'])->name('api.material-units.destroy');
     Route::post('/api/material-categories', [MaterialController::class, 'storeCategory'])->name('api.material-categories.store');
 
     // Quotation templates API (for Quotation Create "Use Template" picker)

@@ -60,6 +60,44 @@ class MaterialController extends Controller
         return response()->json($unit);
     }
 
+    /** Rename a unit (code + display name). Cascades to materials.unit if code changes. */
+    public function updateUnit(Request $request, MaterialUnit $unit): JsonResponse
+    {
+        $validated = $request->validate([
+            'code' => 'required|string|max:30|unique:material_units,code,' . $unit->id,
+            'name' => 'nullable|string|max:80',
+        ]);
+
+        $newCode = Str::lower(trim($validated['code']));
+        $oldCode = $unit->code;
+
+        DB::transaction(function () use ($unit, $newCode, $oldCode, $validated) {
+            if ($newCode !== $oldCode) {
+                Material::where('unit', $oldCode)->update(['unit' => $newCode]);
+            }
+            $unit->update([
+                'code' => $newCode,
+                'name' => $validated['name'] ?? Str::title($newCode),
+            ]);
+        });
+
+        return response()->json($unit->fresh());
+    }
+
+    /** Delete a unit. Refuses if any material is still using it. */
+    public function destroyUnit(MaterialUnit $unit): JsonResponse
+    {
+        $inUse = Material::where('unit', $unit->code)->count();
+        if ($inUse > 0) {
+            return response()->json([
+                'message' => "Cannot delete: {$inUse} material(s) still use \"{$unit->code}\". Reassign them first.",
+            ], 422);
+        }
+
+        $unit->delete();
+        return response()->json(['ok' => true]);
+    }
+
     /** Quick-add a new material category */
     public function storeCategory(Request $request): JsonResponse
     {

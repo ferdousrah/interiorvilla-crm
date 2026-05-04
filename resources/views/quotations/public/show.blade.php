@@ -344,7 +344,7 @@
             <table class="boq">
                 <thead>
                     <tr>
-                        <th style="width:38px;">SL</th>
+                        <th style="width:24px;">SL</th>
                         <th>Description</th>
                         <th class="num" style="width:60px;">Quantity</th>
                         <th class="ctr" style="width:50px;">Unit</th>

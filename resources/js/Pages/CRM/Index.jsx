@@ -12,7 +12,7 @@ const SOURCES = ['referral', 'facebook', 'instagram', 'website', 'walk_in', 'col
 
 const COLUMN_CONFIG = {
     new:           { label: 'New',           color: 'bg-slate-500',   light: 'bg-slate-50',   border: 'border-slate-200',  dot: 'bg-slate-400',   tab: 'text-slate-700 border-slate-500' },
-    contacted:     { label: 'Contacted',     color: 'bg-blue-500',    light: 'bg-blue-50',    border: 'border-blue-200',   dot: 'bg-blue-400',    tab: 'text-blue-700 border-blue-500' },
+    contacted:     { label: 'Meeting',       color: 'bg-blue-500',    light: 'bg-blue-50',    border: 'border-blue-200',   dot: 'bg-blue-400',    tab: 'text-blue-700 border-blue-500' },
     qualified:     { label: 'Qualified',     color: 'bg-violet-500',  light: 'bg-violet-50',  border: 'border-violet-200', dot: 'bg-violet-400',  tab: 'text-violet-700 border-violet-500' },
     proposal_sent: { label: 'Proposal',      color: 'bg-amber-500',   light: 'bg-amber-50',   border: 'border-amber-200',  dot: 'bg-amber-400',   tab: 'text-amber-700 border-amber-500' },
     won:           { label: 'Won',           color: 'bg-emerald-500', light: 'bg-emerald-50', border: 'border-emerald-200',dot: 'bg-emerald-400', tab: 'text-emerald-700 border-emerald-500' },

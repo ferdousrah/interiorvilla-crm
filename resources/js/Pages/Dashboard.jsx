@@ -84,7 +84,7 @@ export default function Dashboard({
 
     // Chart data
     const pipelineData = ['new', 'contacted', 'qualified', 'proposal_sent', 'won', 'lost']
-        .map(s => ({ name: s.replace('_', ' '), value: leadsByStatus?.[s] ?? 0, fill: STATUS_COLORS[s] }));
+        .map(s => ({ name: s === 'contacted' ? 'meeting' : s.replace('_', ' '), value: leadsByStatus?.[s] ?? 0, fill: STATUS_COLORS[s] }));
 
     const sourceData = Object.entries(leadsBySource ?? {}).map(([k, v], i) => ({
         name: k.replace(/_/g, ' '), value: v, fill: PIE_COLORS[i % PIE_COLORS.length],

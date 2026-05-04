@@ -29,7 +29,7 @@ const SECTIONS = [
         intro: 'Capture prospects, schedule follow-ups, and move them through the sales pipeline.',
         items: [
             { q: 'How do I add a new lead?', a: 'CRM → Pipeline → "+ New Lead". Choose Individual or Corporate, fill name (or company name + contact person), phone, and source.' },
-            { q: 'What does the Kanban pipeline show?', a: 'Each lead sits in a column based on its status: New → Contacted → Qualified → Proposal Sent → Won / Lost. Drag-and-drop to move them between stages.' },
+            { q: 'What does the Kanban pipeline show?', a: 'Each lead sits in a column based on its status: New → Meeting → Qualified → Proposal Sent → Won / Lost. Drag-and-drop to move them between stages.' },
             { q: 'How do I schedule a follow-up?', a: 'Open a lead → set the Follow-up Date. The lead will appear on the dashboard\'s "Today\'s Follow-ups" card and on CRM → Follow-ups.' },
             { q: 'How do I convert a lead to a client?', a: 'Open the lead → click "Convert to Client", or mark the linked quotation as approved and convert it to a project (a client is auto-created).' },
         ],

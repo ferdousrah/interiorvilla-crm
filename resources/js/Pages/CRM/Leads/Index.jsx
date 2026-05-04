@@ -63,7 +63,7 @@ export default function LeadsIndex({ leads, users, filters }) {
                     </div>
                     <select className="form-input text-sm py-2" value={status} onChange={e => { setStatus(e.target.value); applyFilters({ status: e.target.value }); }}>
                         <option value="">All Statuses</option>
-                        {STATUSES.map(s => <option key={s} value={s} className="capitalize">{s.replace(/_/g, ' ')}</option>)}
+                        {STATUSES.map(s => <option key={s} value={s} className="capitalize">{s === 'contacted' ? 'Meeting' : s.replace(/_/g, ' ')}</option>)}
                     </select>
                     <select className="form-input text-sm py-2" value={source} onChange={e => { setSource(e.target.value); applyFilters({ source: e.target.value }); }}>
                         <option value="">All Sources</option>

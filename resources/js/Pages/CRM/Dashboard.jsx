@@ -9,7 +9,7 @@ const ACTIVITY_ICONS = { call: '📞', email: '✉️', whatsapp: '💬', site_v
 
 const STATUS_ORDER = ['new', 'contacted', 'qualified', 'proposal_sent', 'won', 'lost'];
 const STATUS_LABELS = {
-    new: 'New', contacted: 'Contacted', qualified: 'Qualified',
+    new: 'New', contacted: 'Meeting', qualified: 'Qualified',
     proposal_sent: 'Proposal Sent', won: 'Won', lost: 'Lost',
 };
 

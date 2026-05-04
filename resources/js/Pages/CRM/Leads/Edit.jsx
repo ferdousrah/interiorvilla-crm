@@ -77,7 +77,7 @@ export default function LeadEdit({ lead, users = [], serviceCategories = {}, can
                         </FormField>
                         <FormField label="Status" error={errors.status}>
                             <select className="form-input" value={data.status} onChange={e => setData('status', e.target.value)}>
-                                {STATUSES.map(s => <option key={s} value={s} className="capitalize">{s.replace(/_/g, ' ')}</option>)}
+                                {STATUSES.map(s => <option key={s} value={s} className="capitalize">{s === 'contacted' ? 'Meeting' : s.replace(/_/g, ' ')}</option>)}
                             </select>
                         </FormField>
                         <FormField label="Service Category" error={errors.service_group}>

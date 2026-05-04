@@ -304,14 +304,16 @@ export default function QuotationCreate({ clients, leads, projects, serviceCateg
                     </div>
 
                     {/* Custom Bill To block (overrides auto-generated client/lead address) */}
-                    <FormField label="Bill To (optional override)" error={errors.bill_to} className="mt-4">
-                        <textarea className="form-input text-sm font-mono leading-relaxed"
-                            rows={3}
-                            value={data.bill_to}
-                            onChange={e => setData('bill_to', e.target.value)}
-                            placeholder={'Leave blank to auto-fill from the selected client/lead.\nOr type a custom block, e.g.\nAuthority, Smart Air Bangladesh\nTropical Molla Tower, Link Road, Badda, Dhaka.'} />
-                        <p className="text-[10px] text-gray-400 mt-1">If filled, this exact text replaces the To block on the printed quotation. Leave blank to use the linked client/lead's name + address automatically.</p>
-                    </FormField>
+                    <div className="mt-8 pt-6 border-t border-gray-100">
+                        <FormField label="Bill To (optional override)" error={errors.bill_to}>
+                            <textarea className="form-input text-sm font-mono leading-relaxed"
+                                rows={3}
+                                value={data.bill_to}
+                                onChange={e => setData('bill_to', e.target.value)}
+                                placeholder={'Leave blank to auto-fill from the selected client/lead.\nOr type a custom block, e.g.\nAuthority, Smart Air Bangladesh\nTropical Molla Tower, Link Road, Badda, Dhaka.'} />
+                            <p className="text-[10px] text-gray-400 mt-1">If filled, this exact text replaces the To block on the printed quotation. Leave blank to use the linked client/lead's name + address automatically.</p>
+                        </FormField>
+                    </div>
                 </div>
 
                 {/* ── BOQ Line Items ─────────────────────────── */}

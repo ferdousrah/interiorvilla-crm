@@ -433,8 +433,8 @@
 
                     {{-- GRAND TOTAL --}}
                     <tr class="final-row">
-                        <td colspan="5" style="text-align:right;">GRAND TOTAL</td>
-                        <td class="num">BDT {{ number_format($quotation->grand_total, 2) }}</td>
+                        <td colspan="5" style="text-align:right;">GRAND TOTAL (BDT)</td>
+                        <td class="num">{{ number_format($quotation->grand_total, 2) }}</td>
                     </tr>
                 </tbody>
             </table>

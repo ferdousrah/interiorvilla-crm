@@ -394,9 +394,9 @@ export default function QuotationShow({ quotation, company = {}, grandTotalInWor
 
                             {/* GRAND TOTAL */}
                             <tr>
-                                <td className="bg-gray-900 border border-gray-900 px-3 py-2.5 text-white font-bold text-right text-[15px]" colSpan={5}>GRAND TOTAL</td>
+                                <td className="bg-gray-900 border border-gray-900 px-3 py-2.5 text-white font-bold text-right text-[15px]" colSpan={5}>GRAND TOTAL (BDT)</td>
                                 <td className="bg-gray-900 border border-gray-900 px-3 py-2.5 text-amber-300 font-bold text-right tabular-nums text-[15px]">
-                                    BDT {fmt(quotation.grand_total)}
+                                    {fmt(quotation.grand_total)}
                                 </td>
                             </tr>
                         </tbody>

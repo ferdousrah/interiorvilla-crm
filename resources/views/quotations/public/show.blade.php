@@ -24,12 +24,42 @@
             padding: 40px 44px 28px;
         }
 
-        /* PDF overrides — flatten the card, tighten margins */
+        /* PDF overrides — flatten the card, repeat letterhead header/footer per page */
         @if($isPdf ?? false)
-        @page { margin: 12mm 10mm; }
+        @page { margin: 34mm 10mm 24mm 10mm; }       /* top right bottom left — leave room for fixed header/footer */
         body { background: #fff; font-size: 12.5px; line-height: 1.45; }
         .wrap { max-width: 100%; padding: 0; margin: 0; }
         .sheet { box-shadow: none; border-radius: 0; padding: 0; }
+
+        /* Repeating page header (every page) */
+        .page-header {
+            position: fixed;
+            top: -28mm;
+            left: 0; right: 0;
+            height: 24mm;
+            padding-bottom: 3mm;
+            border-bottom: 1px solid #d1d5db;
+        }
+        .page-header .hdr-date { font-size: 12px; color: #1f2937; padding-top: 6mm; }
+        .page-header .hdr-date strong { font-weight: 700; }
+        .page-header .hdr-logo { text-align: right; }
+        .page-header .hdr-logo img { max-height: 18mm; max-width: 60mm; display: inline-block; }
+        .page-header .hdr-name { font-size: 14px; font-weight: 700; color: #111827; }
+        .page-header .hdr-tagline { font-size: 9px; letter-spacing: 2px; color: #059669; text-transform: uppercase; }
+
+        /* Repeating page footer (every page) */
+        .page-footer {
+            position: fixed;
+            bottom: -18mm;
+            left: 0; right: 0;
+            height: 12mm;
+            padding-top: 3mm;
+            border-top: 1px solid #d1d5db;
+            text-align: center;
+            font-size: 11px;
+            font-weight: 700;
+            color: #1f2937;
+        }
         @endif
 
         /* ========== HEADER ========== */
@@ -211,10 +241,41 @@
     </style>
 </head>
 <body>
+    @if($isPdf ?? false)
+        {{-- PDF only: repeating page header (Date + Logo on every page) --}}
+        <div class="page-header">
+            <table style="width:100%; border-collapse:collapse;">
+                <tr>
+                    <td style="width:55%; vertical-align:middle;" class="hdr-date">
+                        Date: <strong>{{ \Carbon\Carbon::parse($quotation->document_date ?? $quotation->created_at)->format('d/m/Y') }}</strong>
+                    </td>
+                    <td style="width:45%; vertical-align:middle;" class="hdr-logo">
+                        @if(!empty($companyLogo))
+                            <img src="{{ $companyLogo }}" alt="{{ $companyName }}">
+                        @else
+                            <div class="hdr-name">{{ $companyName }}</div>
+                            @if(!empty($companyTagline))
+                                <div class="hdr-tagline">{{ $companyTagline }}</div>
+                            @endif
+                        @endif
+                    </td>
+                </tr>
+            </table>
+        </div>
+
+        {{-- PDF only: repeating page footer (Address on every page bottom) --}}
+        <div class="page-footer">
+            @if(!empty($companyAddress))
+                {{ $companyAddress }}
+            @endif
+        </div>
+    @endif
+
     <div class="wrap">
         <div class="sheet">
 
-            {{-- HEADER: Date (left) + Logo (right) --}}
+            @unless($isPdf ?? false)
+            {{-- Web only: inline HEADER (Date + Logo). PDF uses the fixed .page-header above instead. --}}
             <table class="hdr">
                 <tr>
                     <td style="width:55%;">
@@ -234,6 +295,7 @@
                     </td>
                 </tr>
             </table>
+            @endunless
 
             {{-- TO BLOCK --}}
             @php
@@ -421,10 +483,12 @@
                 @endif
             </div>
 
-            {{-- FOOTER ADDRESS --}}
-            @if(!empty($companyAddress))
-                <div class="foot-addr">{{ $companyAddress }}</div>
-            @endif
+            @unless($isPdf ?? false)
+                {{-- Web only: inline FOOTER ADDRESS. PDF uses the fixed .page-footer at the top. --}}
+                @if(!empty($companyAddress))
+                    <div class="foot-addr">{{ $companyAddress }}</div>
+                @endif
+            @endunless
         </div>
 
         @if(!($isPdf ?? false))

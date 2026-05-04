@@ -75,6 +75,7 @@ export default function QuotationsIndex({ quotations, filters }) {
                                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Subject</th>
                                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
                                 <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Total</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Created By</th>
                                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Valid Until</th>
                                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
                             </tr>
@@ -82,7 +83,7 @@ export default function QuotationsIndex({ quotations, filters }) {
                         <tbody className="divide-y divide-gray-100 bg-white">
                             {items.length === 0 && (
                                 <tr>
-                                    <td colSpan={7} className="px-4 py-10 text-center text-gray-400">
+                                    <td colSpan={8} className="px-4 py-10 text-center text-gray-400">
                                         No quotations yet.{' '}
                                         <Link href={route('quotations.create')} className="text-primary-600 hover:underline">Create the first one</Link>
                                     </td>
@@ -100,6 +101,9 @@ export default function QuotationsIndex({ quotations, filters }) {
                                     <td className="px-4 py-3"><Badge status={q.status} /></td>
                                     <td className="px-4 py-3 text-right font-semibold text-primary-700">
                                         {Number(q.grand_total).toLocaleString('en-IN')}৳
+                                    </td>
+                                    <td className="px-4 py-3 text-gray-600 text-xs">
+                                        {q.createdBy?.name ?? '—'}
                                     </td>
                                     <td className="px-4 py-3 text-gray-500 text-xs">
                                         {q.valid_until ? formatDate(q.valid_until) : '—'}

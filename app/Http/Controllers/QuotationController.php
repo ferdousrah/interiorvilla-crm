@@ -135,6 +135,8 @@ class QuotationController extends Controller
                 'phone'     => Setting::get('company_phone'),
                 'phone2'    => Setting::get('company_phone2'),
                 'address'   => Setting::get('company_address'),
+                'ceo_name'  => Setting::get('company_ceo_name'),
+                'ceo_title' => Setting::get('company_ceo_title', 'CEO'),
                 'logo'      => $logoPath ? asset('storage/' . $logoPath) : null,
                 'signature' => $sigPath  ? asset('storage/' . $sigPath)  : null,
             ],

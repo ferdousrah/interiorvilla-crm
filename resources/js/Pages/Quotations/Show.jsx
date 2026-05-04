@@ -422,9 +422,9 @@ export default function QuotationShow({ quotation, company = {}, grandTotalInWor
                             <div className="h-[60px]" />
                         )}
                         <div className="font-bold text-gray-900">
-                            {quotation.createdBy?.name}
+                            {company.ceo_name || quotation.createdBy?.name}
                         </div>
-                        <div className="text-gray-600 text-[13px]">CEO</div>
+                        <div className="text-gray-600 text-[13px]">{company.ceo_title || 'CEO'}</div>
                         <div className="font-bold text-gray-900 text-[16px] mt-1.5">{company.name || 'Interior Villa'}</div>
                         {(company.phone || company.phone2) && (
                             <div className="text-gray-700 text-[13px] mt-1">

@@ -24,10 +24,20 @@ class QuotationController extends Controller
 {
     public function __construct(private CodeGeneratorService $codeGenerator) {}
 
+    private function authorizeAccess(Quotation $quotation): void
+    {
+        $user = auth()->user();
+        abort_unless($user->hasRole('admin') || $quotation->created_by === $user->id, 403);
+    }
+
     public function index(Request $request): Response
     {
         $query = Quotation::with(['client', 'lead', 'project', 'createdBy'])
             ->whereNull('deleted_at');
+
+        if (!auth()->user()->hasRole('admin')) {
+            $query->where('created_by', auth()->id());
+        }
 
         if ($search = $request->get('search')) {
             $query->where(function ($q) use ($search) {
@@ -110,6 +120,7 @@ class QuotationController extends Controller
 
     public function show(Quotation $quotation): Response
     {
+        $this->authorizeAccess($quotation);
         $quotation->load(['client', 'lead', 'project', 'items', 'createdBy']);
 
         $logoPath = Setting::get('quotation_logo') ?: Setting::get('company_logo');
@@ -148,6 +159,7 @@ class QuotationController extends Controller
 
     public function edit(Quotation $quotation): Response
     {
+        $this->authorizeAccess($quotation);
         if ($quotation->status === 'superseded') {
             return redirect()->route('quotations.show', $quotation)
                 ->with('error', 'This is an old revision and cannot be edited. Open the latest revision instead.');
@@ -170,6 +182,7 @@ class QuotationController extends Controller
 
     public function update(Request $request, Quotation $quotation): RedirectResponse
     {
+        $this->authorizeAccess($quotation);
         $validated = $this->validateQuotation($request);
 
         DB::transaction(function () use ($validated, $quotation) {
@@ -254,6 +267,7 @@ class QuotationController extends Controller
 
     public function destroy(Quotation $quotation): RedirectResponse
     {
+        $this->authorizeAccess($quotation);
         $quotation->delete();
         return redirect()->route('quotations.index')->with('success', 'Quotation deleted.');
     }
@@ -265,6 +279,7 @@ class QuotationController extends Controller
      */
     public function revise(Quotation $quotation): RedirectResponse
     {
+        $this->authorizeAccess($quotation);
         if (!in_array($quotation->status, ['sent', 'under_review', 'rejected'])) {
             return back()->with('error', 'Only sent, under-review, or rejected quotations can be revised.');
         }
@@ -306,6 +321,7 @@ class QuotationController extends Controller
     /** Mark as Sent */
     public function markSent(Quotation $quotation): RedirectResponse
     {
+        $this->authorizeAccess($quotation);
         $quotation->update(['status' => 'sent']);
         return back()->with('success', 'Quotation marked as sent.');
     }
@@ -313,6 +329,7 @@ class QuotationController extends Controller
     /** Approve */
     public function approve(Quotation $quotation): RedirectResponse
     {
+        $this->authorizeAccess($quotation);
         $quotation->update(['status' => 'approved']);
         // Update linked lead estimated_value
         if ($quotation->lead_id) {
@@ -324,6 +341,7 @@ class QuotationController extends Controller
     /** Reject */
     public function reject(Request $request, Quotation $quotation): RedirectResponse
     {
+        $this->authorizeAccess($quotation);
         $quotation->update(['status' => 'rejected']);
         if ($quotation->lead_id) {
             $quotation->lead->update(['status' => 'lost', 'lost_reason' => 'Quotation rejected']);
@@ -334,6 +352,7 @@ class QuotationController extends Controller
     /** Convert approved quotation to a Project */
     public function convertToProject(Request $request, Quotation $quotation): RedirectResponse
     {
+        $this->authorizeAccess($quotation);
         if ($quotation->status !== 'approved') {
             return back()->with('error', 'Only approved quotations can be converted to a project.');
         }
@@ -406,6 +425,7 @@ class QuotationController extends Controller
     /** Return a fresh signed share link (for WhatsApp / copy-link) */
     public function shareLink(Quotation $quotation)
     {
+        $this->authorizeAccess($quotation);
         return response()->json(['url' => $this->buildPublicUrl($quotation)]);
     }
 
@@ -444,6 +464,7 @@ class QuotationController extends Controller
     /** Download the quotation as PDF (reuses the public blade) */
     public function downloadPdf(Quotation $quotation)
     {
+        $this->authorizeAccess($quotation);
         $quotation->load(['client', 'lead', 'items', 'createdBy']);
 
         $pdf = Pdf::loadView('quotations.public.show', $this->buildViewPayload($quotation, true))
@@ -466,6 +487,7 @@ class QuotationController extends Controller
     /** Send quotation by email to the client */
     public function sendEmail(Request $request, Quotation $quotation): RedirectResponse
     {
+        $this->authorizeAccess($quotation);
         $validated = $request->validate([
             'to'             => 'required|string',
             'cc'             => 'nullable|string',

@@ -260,7 +260,7 @@ export default function QuotationShow({ quotation, company = {}, grandTotalInWor
                         </div>
                     </div>
 
-                    {/* To block */}
+                    {/* To block — use custom bill_to if set, else auto-build from client/lead */}
                     {(() => {
                         const person = quotation.client ?? quotation.lead;
                         const companyName = quotation.client?.company_name ?? quotation.lead?.company_name;
@@ -268,7 +268,14 @@ export default function QuotationShow({ quotation, company = {}, grandTotalInWor
                         return (
                             <div className="text-[14px] mb-4 leading-relaxed">
                                 <div className="text-gray-500">To</div>
-                                {person ? (
+                                {quotation.bill_to ? (
+                                    <div className="whitespace-pre-line">
+                                        <span className="font-bold text-gray-900">{quotation.bill_to.split('\n')[0]}</span>
+                                        {quotation.bill_to.split('\n').slice(1).map((line, i) => (
+                                            <div key={i}>{line}</div>
+                                        ))}
+                                    </div>
+                                ) : person ? (
                                     <>
                                         <div className="font-bold text-gray-900">
                                             {companyName || contactName}

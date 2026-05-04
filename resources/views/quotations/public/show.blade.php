@@ -237,15 +237,24 @@
 
             {{-- TO BLOCK --}}
             @php
-                $person      = $quotation->client ?? $quotation->lead;
-                $companyName = $quotation->client?->company_name ?? $quotation->lead?->company_name;
-                $contactName = $person?->name;
+                $person       = $quotation->client ?? $quotation->lead;
+                $companyName2 = $quotation->client?->company_name ?? $quotation->lead?->company_name;
+                $contactName  = $person?->name;
+                $billToLines  = !empty($quotation->bill_to)
+                    ? array_values(array_filter(preg_split('/\r\n|\r|\n/', $quotation->bill_to), fn($l) => trim($l) !== ''))
+                    : null;
             @endphp
             <div class="to-block">
                 <div class="lbl">To</div>
-                @if($person)
-                    <div class="name">{{ $companyName ?: $contactName }}</div>
-                    @if($companyName && $contactName)
+                @if($billToLines)
+                    {{-- Custom override: first line = bold name, rest = address lines --}}
+                    <div class="name">{{ $billToLines[0] }}</div>
+                    @foreach(array_slice($billToLines, 1) as $line)
+                        <div>{{ $line }}</div>
+                    @endforeach
+                @elseif($person)
+                    <div class="name">{{ $companyName2 ?: $contactName }}</div>
+                    @if($companyName2 && $contactName)
                         <div>Attn: {{ $contactName }}</div>
                     @endif
                     @if($person->address)

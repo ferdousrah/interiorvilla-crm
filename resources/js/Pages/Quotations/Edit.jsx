@@ -32,6 +32,7 @@ export default function QuotationEdit({ quotation, clients, leads, projects, ser
         service_group:         quotation.service_group ?? '',
         service_type:          quotation.service_type ?? '',
         subject:               quotation.subject ?? '',
+        bill_to:               quotation.bill_to ?? '',
         document_date:         quotation.document_date?.substring(0, 10) ?? '',
         valid_until:           quotation.valid_until?.substring(0, 10) ?? '',
         discount_type:         quotation.discount_type ?? 'percentage',
@@ -217,6 +218,16 @@ export default function QuotationEdit({ quotation, clients, leads, projects, ser
                             <input className="form-input" value={data.notes} onChange={e => setData('notes', e.target.value)} />
                         </FormField>
                     </div>
+
+                    {/* Custom Bill To block */}
+                    <FormField label="Bill To (optional override)" error={errors.bill_to} className="mt-4">
+                        <textarea className="form-input text-sm font-mono leading-relaxed"
+                            rows={3}
+                            value={data.bill_to}
+                            onChange={e => setData('bill_to', e.target.value)}
+                            placeholder={'Leave blank to auto-fill from the selected client/lead.\nOr type a custom block, e.g.\nAuthority, Smart Air Bangladesh\nTropical Molla Tower, Link Road, Badda, Dhaka.'} />
+                        <p className="text-[10px] text-gray-400 mt-1">If filled, this exact text replaces the To block on the printed quotation.</p>
+                    </FormField>
                 </div>
 
                 {/* BOQ */}

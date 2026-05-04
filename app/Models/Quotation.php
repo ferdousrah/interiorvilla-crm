@@ -16,7 +16,7 @@ class Quotation extends Model
 
     protected $fillable = [
         'code', 'revision_no', 'parent_quotation_id',
-        'client_id', 'lead_id', 'project_id', 'subject', 'service_group', 'service_type',
+        'client_id', 'lead_id', 'project_id', 'subject', 'bill_to', 'service_group', 'service_type',
         'status', 'document_date', 'valid_until',
         'subtotal', 'discount_type', 'discount_value', 'discount_amount',
         'vat_pct', 'vat_amount',

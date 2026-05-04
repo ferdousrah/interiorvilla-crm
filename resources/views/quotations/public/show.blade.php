@@ -123,7 +123,6 @@
         .boq tr.item-row td.desc {
             line-height: 1.55;
             color: #374151;
-            white-space: pre-line;
             font-size: 13px;
         }
         .boq tr.item-row td.desc .title {
@@ -132,6 +131,9 @@
             display: block;
             margin-bottom: 3px;
             font-size: 13.5px;
+        }
+        .boq tr.item-row td.desc .body {
+            white-space: pre-line;
         }
 
         .boq tr.subtotal-row td {
@@ -366,12 +368,7 @@
                         @foreach($items as $ii => $item)
                             <tr class="item-row">
                                 <td class="idx">{{ $loop->parent->iteration }}.{{ $ii + 1 }}</td>
-                                <td class="desc">
-                                    @if(!empty($item->item_name))
-                                        <span class="title">{{ $item->item_name }}</span>
-                                    @endif
-                                    {{ $item->description }}
-                                </td>
+                                <td class="desc">@if(!empty($item->item_name))<span class="title">{{ $item->item_name }}</span>@endif<span class="body">{{ $item->description }}</span></td>
                                 <td class="num">{{ number_format($item->quantity, 2) }}</td>
                                 <td class="ctr">{{ $item->unit }}</td>
                                 <td class="num">{{ number_format($item->unit_rate, 2) }}</td>

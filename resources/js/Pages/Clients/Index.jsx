@@ -100,8 +100,9 @@ export default function ClientsIndex({ clients, filters }) {
                 open={!!deleteTarget}
                 title="Delete Client"
                 message="Are you sure? This cannot be undone."
+                confirmLabel="Delete"
                 onConfirm={handleDelete}
-                onCancel={() => setDeleteTarget(null)}
+                onClose={() => setDeleteTarget(null)}
             />
         </AppLayout>
     );

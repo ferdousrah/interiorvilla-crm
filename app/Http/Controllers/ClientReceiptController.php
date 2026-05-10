@@ -79,7 +79,8 @@ class ClientReceiptController extends Controller
         $this->authorize('create', Invoice::class);
 
         $validated = $request->validate([
-            'client_id' => 'required|uuid|exists:clients,id',
+            'client_id' => 'nullable|uuid|exists:clients,id',
+            'lead_id' => 'nullable|uuid|exists:leads,id',
             'invoice_id' => 'nullable|uuid|exists:invoices,id',
             'project_id' => 'nullable|uuid|exists:projects,id',
             'amount' => 'required|numeric|min:0.01',
@@ -90,6 +91,10 @@ class ClientReceiptController extends Controller
             'account_head_id' => 'required|uuid|exists:account_heads,id',
             'notes' => 'nullable|string',
         ]);
+
+        if (empty($validated['client_id']) && empty($validated['lead_id'])) {
+            return back()->withErrors(['client_id' => 'Receipt must be tied to a client or a lead.'])->withInput();
+        }
 
         $receipt = DB::transaction(function () use ($validated) {
             // Auto-inherit income_source from the linked invoice when the user
@@ -119,6 +124,13 @@ class ClientReceiptController extends Controller
         });
 
         $this->accounting->postClientReceiptRecorded($receipt->fresh(['client']));
+
+        // If recorded from an invoice page, send the user back there so they
+        // can immediately see the updated balance / status.
+        if ($receipt->invoice_id) {
+            return redirect()->route('accounts.invoices.show', $receipt->invoice_id)
+                ->with('success', "Payment of {$receipt->amount} recorded.");
+        }
 
         return redirect()->route('accounts.receipts.index')->with('success', 'Receipt recorded.');
     }

@@ -13,36 +13,50 @@ import {
 
 const STATUS_COLORS = { draft: 'gray', sent: 'info', partial: 'warning', paid: 'success', overdue: 'danger', cancelled: 'danger' };
 
-function RecordPaymentForm({ invoice, onClose }) {
+function RecordPaymentForm({ invoice, accountHeads = [], onClose }) {
+    const balance = parseFloat(invoice.grand_total ?? 0) - parseFloat(invoice.paid_amount ?? 0);
     const { data, setData, post, processing, errors } = useForm({
-        amount: invoice.balance_due, payment_date: new Date().toISOString().substring(0, 10),
-        payment_method: 'bank_transfer', reference: '', notes: '',
+        invoice_id: invoice.id,
+        client_id: invoice.client_id ?? '',
+        lead_id: invoice.lead_id ?? '',
+        project_id: invoice.project_id ?? '',
+        amount: balance > 0 ? balance.toFixed(2) : '',
+        receipt_date: new Date().toISOString().substring(0, 10),
+        payment_method: 'bank_transfer',
+        account_head_id: accountHeads[0]?.id ?? '',
+        reference: '',
+        notes: '',
     });
     function submit(e) {
         e.preventDefault();
-        post(route('accounts.receipts.store'), { onSuccess: onClose });
+        post(route('accounts.receipts.store'), { preserveScroll: true, onSuccess: onClose });
     }
     return (
         <div className="bg-blue-50 rounded-lg p-4 mb-4 border border-blue-200">
             <h4 className="font-medium text-sm mb-3">Record Payment</h4>
             <form onSubmit={submit} className="space-y-3">
-                <input type="hidden" value={invoice.id} name="invoice_id" />
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                     <FormField label="Amount (৳)" error={errors.amount} required>
-                        <input type="number" className="form-input text-sm" value={data.amount} onChange={e => setData('amount', e.target.value)} />
+                        <input type="number" step="0.01" min="0.01" className="form-input text-sm" value={data.amount} onChange={e => setData('amount', e.target.value)} />
                     </FormField>
-                    <FormField label="Date" error={errors.payment_date}>
-                        <input type="date" className="form-input text-sm" value={data.payment_date} onChange={e => setData('payment_date', e.target.value)} />
+                    <FormField label="Date" error={errors.receipt_date} required>
+                        <input type="date" className="form-input text-sm" value={data.receipt_date} onChange={e => setData('receipt_date', e.target.value)} />
                     </FormField>
-                    <FormField label="Method" error={errors.payment_method}>
+                    <FormField label="Method" error={errors.payment_method} required>
                         <select className="form-input text-sm" value={data.payment_method} onChange={e => setData('payment_method', e.target.value)}>
-                            {['cash','bank_transfer','cheque','mobile_banking'].map(m => <option key={m} value={m}>{m.replace('_', ' ')}</option>)}
+                            {['cash','bank_transfer','cheque','bkash','nagad','rocket','other'].map(m => <option key={m} value={m}>{m.replace('_', ' ')}</option>)}
                         </select>
                     </FormField>
+                    <FormField label="Received Into (Account)" error={errors.account_head_id} required>
+                        <select className="form-input text-sm" value={data.account_head_id} onChange={e => setData('account_head_id', e.target.value)}>
+                            <option value="">— select —</option>
+                            {accountHeads.map(a => <option key={a.id} value={a.id}>{a.code} — {a.name}</option>)}
+                        </select>
+                    </FormField>
+                    <FormField label="Reference" error={errors.reference}>
+                        <input className="form-input text-sm" value={data.reference} onChange={e => setData('reference', e.target.value)} placeholder="cheque no., txn id…" />
+                    </FormField>
                 </div>
-                <FormField label="Reference" error={errors.reference}>
-                    <input className="form-input text-sm" value={data.reference} onChange={e => setData('reference', e.target.value)} />
-                </FormField>
                 <div className="flex gap-2">
                     <button type="submit" disabled={processing} className="btn btn-primary text-xs">{processing ? '…' : 'Record Payment'}</button>
                     <button type="button" onClick={onClose} className="btn text-xs">Cancel</button>
@@ -52,7 +66,7 @@ function RecordPaymentForm({ invoice, onClose }) {
     );
 }
 
-export default function InvoiceShow({ invoice, company = {}, grandTotalInWords = '' }) {
+export default function InvoiceShow({ invoice, accountHeads = [], company = {}, grandTotalInWords = '' }) {
     const [showPayment, setShowPayment] = useState(false);
     const [emailModal, setEmailModal] = useState(false);
     const [shareBusy, setShareBusy] = useState(false);
@@ -154,7 +168,7 @@ export default function InvoiceShow({ invoice, company = {}, grandTotalInWords =
             )}
             {showPayment && (
                 <div className="px-4 sm:px-6 pt-4 print:hidden">
-                    <RecordPaymentForm invoice={invoice} onClose={() => setShowPayment(false)} />
+                    <RecordPaymentForm invoice={invoice} accountHeads={accountHeads} onClose={() => setShowPayment(false)} />
                 </div>
             )}
 

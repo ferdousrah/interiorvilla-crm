@@ -383,7 +383,24 @@ class InvoiceController extends Controller
     public function destroy(Invoice $invoice): RedirectResponse
     {
         $this->authorize('delete', $invoice);
-        $invoice->delete();
+
+        // Refuse if any payment has already been recorded — cash-basis books would
+        // otherwise show a phantom receipt against a non-existent invoice.
+        if ($invoice->receipts()->exists() || (float) $invoice->paid_amount > 0) {
+            return back()->with('error',
+                'Cannot delete: this invoice has payment receipts. Reverse the receipts first, then try again.');
+        }
+
+        DB::transaction(function () use ($invoice) {
+            // Reverse the journal entry posted when this invoice was created so
+            // Accounts Receivable + Revenue stay in balance.
+            \App\Models\JournalEntry::where('reference_type', 'invoice')
+                ->where('reference_id', $invoice->id)
+                ->delete(); // journal_lines cascade via FK
+
+            $invoice->delete(); // soft-delete (recoverable via DB restore)
+        });
+
         return redirect()->route('accounts.invoices.index')->with('success', 'Invoice deleted.');
     }
 

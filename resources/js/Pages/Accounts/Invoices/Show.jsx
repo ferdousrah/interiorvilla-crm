@@ -8,7 +8,7 @@ import { formatBDT, formatDate } from '@/utils/formatters';
 import { Fragment, useState } from 'react';
 import axios from 'axios';
 import {
-    EnvelopeIcon, ShareIcon, LinkIcon, DocumentArrowDownIcon, PrinterIcon, BanknotesIcon,
+    EnvelopeIcon, ShareIcon, LinkIcon, DocumentArrowDownIcon, PrinterIcon, BanknotesIcon, TrashIcon,
 } from '@heroicons/react/24/outline';
 
 const STATUS_COLORS = { draft: 'gray', sent: 'info', partial: 'warning', paid: 'success', overdue: 'danger', cancelled: 'danger' };
@@ -57,6 +57,14 @@ export default function InvoiceShow({ invoice, company = {}, grandTotalInWords =
     const [emailModal, setEmailModal] = useState(false);
     const [shareBusy, setShareBusy] = useState(false);
     const canRecord = !['paid', 'cancelled'].includes(invoice.status);
+    const receiptCount = (invoice.receipts ?? []).length;
+    const canDelete = receiptCount === 0 && parseFloat(invoice.paid_amount ?? 0) === 0;
+
+    function doDelete() {
+        if (confirm(`Delete invoice ${invoice.code}?\n\nThis will also reverse the journal entry posted at creation. This cannot be undone from the UI.`)) {
+            router.delete(route('accounts.invoices.destroy', invoice.id));
+        }
+    }
 
     const recipientName = invoice.client?.name || invoice.lead?.name || 'Valued Client';
     const defaultRecipient = invoice.client?.email || invoice.lead?.email || '';
@@ -126,6 +134,11 @@ export default function InvoiceShow({ invoice, company = {}, grandTotalInWords =
                 {canRecord && (
                     <button onClick={() => setShowPayment(!showPayment)} className="btn btn-secondary flex items-center gap-2 text-sm">
                         <BanknotesIcon className="w-4 h-4" /> Record Payment
+                    </button>
+                )}
+                {canDelete && (
+                    <button onClick={doDelete} className="btn btn-danger flex items-center gap-2 text-sm" title="Delete this invoice (no payments recorded yet)">
+                        <TrashIcon className="w-4 h-4" /> Delete
                     </button>
                 )}
             </PageHeader>

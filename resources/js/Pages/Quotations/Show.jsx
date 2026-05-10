@@ -11,7 +11,7 @@ import {
     PencilIcon, TrashIcon, PrinterIcon, CheckCircleIcon,
     XCircleIcon, PaperAirplaneIcon, FolderOpenIcon,
     EnvelopeIcon, ShareIcon, LinkIcon, DocumentArrowDownIcon,
-    ArrowPathIcon, ClockIcon,
+    ArrowPathIcon, ClockIcon, BanknotesIcon,
 } from '@heroicons/react/24/outline';
 
 function fmt(n) {
@@ -26,7 +26,7 @@ const STATUS_ACTIONS = {
     draft:        ['send'],
     sent:         ['approve', 'reject', 'revise'],
     under_review: ['approve', 'reject', 'revise'],
-    approved:     ['convert', 'revise'],
+    approved:     ['invoice', 'convert', 'revise'],
     rejected:     ['revise'],
     expired:      [],
     converted:    [],
@@ -167,8 +167,14 @@ export default function QuotationShow({ quotation, company = {}, grandTotalInWor
                         <XCircleIcon className="w-4 h-4" /> Reject
                     </button>
                 )}
+                {actions.includes('invoice') && (
+                    <Link href={`${route('accounts.invoices.create')}?quotation_id=${quotation.id}`}
+                        className="btn btn-primary flex items-center gap-2 text-sm">
+                        <BanknotesIcon className="w-4 h-4" /> Create Invoice
+                    </Link>
+                )}
                 {actions.includes('convert') && (
-                    <button onClick={() => setConvertModal(true)} className="btn btn-primary flex items-center gap-2 text-sm">
+                    <button onClick={() => setConvertModal(true)} className="btn btn-secondary flex items-center gap-2 text-sm">
                         <FolderOpenIcon className="w-4 h-4" /> Convert to Project
                     </button>
                 )}

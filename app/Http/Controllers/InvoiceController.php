@@ -9,6 +9,7 @@ use App\Models\ClientReceipt;
 use App\Models\Invoice;
 use App\Models\Lead;
 use App\Models\Project;
+use App\Models\Quotation;
 use App\Models\Setting;
 use App\Services\AccountingService;
 use App\Services\CodeGeneratorService;
@@ -199,16 +200,45 @@ class InvoiceController extends Controller
     {
         $this->authorize('create', Invoice::class);
 
+        $prefill = [
+            'lead_id'      => $request->get('lead_id'),
+            'client_id'    => $request->get('client_id'),
+            'project_id'   => $request->get('project_id'),
+            'quotation_id' => null,
+            'quotation'    => null,
+            'items'        => null,
+            'vat_pct'      => null,
+            'discount_amount' => null,
+            'terms'        => null,
+        ];
+
+        // If creating from an approved quotation, prefill entity refs + line items
+        if ($qid = $request->get('quotation_id')) {
+            $quotation = Quotation::with('items')->find($qid);
+            if ($quotation && $quotation->status === 'approved') {
+                $prefill['quotation_id']    = $quotation->id;
+                $prefill['quotation']       = ['id' => $quotation->id, 'code' => $quotation->code, 'display_code' => $quotation->display_code];
+                $prefill['client_id']       = $quotation->client_id ?: $prefill['client_id'];
+                $prefill['lead_id']         = $quotation->lead_id   ?: $prefill['lead_id'];
+                $prefill['project_id']      = $quotation->project_id ?: $prefill['project_id'];
+                $prefill['vat_pct']         = (float) $quotation->vat_pct;
+                $prefill['discount_amount'] = (float) $quotation->discount_amount;
+                $prefill['terms']           = $quotation->terms;
+                $prefill['items']           = $quotation->items->map(fn($it) => [
+                    'description' => trim(($it->item_name ? $it->item_name . "\n" : '') . ($it->description ?? '')),
+                    'unit'        => $it->unit,
+                    'quantity'    => (string) $it->quantity,
+                    'unit_rate'   => (string) $it->unit_rate,
+                ])->values()->all();
+            }
+        }
+
         return Inertia::render('Accounts/Invoices/Create', [
             'clients'  => Client::where('is_active', true)->select('id', 'name', 'code', 'phone')->orderBy('name')->get(),
             'leads'    => Lead::whereNotIn('status', ['won', 'lost'])->select('id', 'name', 'phone', 'code')->orderBy('name')->get(),
             'projects' => Project::whereNotIn('status', ['completed', 'cancelled'])->select('id', 'name', 'code')->get(),
             'incomeSources' => config('services_catalog.income_sources', []),
-            'prefill'  => [
-                'lead_id'    => $request->get('lead_id'),
-                'client_id'  => $request->get('client_id'),
-                'project_id' => $request->get('project_id'),
-            ],
+            'prefill'  => $prefill,
         ]);
     }
 
@@ -222,6 +252,7 @@ class InvoiceController extends Controller
             'client_id'   => 'nullable|uuid|exists:clients,id',
             'lead_id'     => 'nullable|uuid|exists:leads,id',
             'project_id'  => 'nullable|uuid|exists:projects,id',
+            'quotation_id' => 'nullable|uuid|exists:quotations,id',
             'income_source' => ['nullable', 'string', 'in:' . implode(',', $incomeSources)],
             'invoice_date' => 'required|date',
             'due_date' => 'required|date|after_or_equal:invoice_date',
@@ -231,7 +262,8 @@ class InvoiceController extends Controller
             'terms' => 'nullable|string',
             'status' => 'required|in:draft,sent',
             'items' => 'required|array|min:1',
-            'items.*.description' => 'required|string|max:250',
+            'items.*.description' => 'required|string|max:1000',
+            'items.*.unit' => 'nullable|string|max:30',
             'items.*.quantity' => 'required|numeric|min:0.01',
             'items.*.unit_rate' => 'required|numeric|min:0',
             'items.*.sequence' => 'nullable|integer',
@@ -275,6 +307,11 @@ class InvoiceController extends Controller
                 ]));
             }
 
+            // If linked to a quotation, mark it as converted (one quotation → one invoice)
+            if (!empty($validated['quotation_id'])) {
+                Quotation::where('id', $validated['quotation_id'])->update(['status' => 'converted']);
+            }
+
             return $invoice;
         });
 
@@ -288,7 +325,7 @@ class InvoiceController extends Controller
     {
         $this->authorize('view', $invoice);
 
-        $invoice->load(['client', 'lead', 'project', 'lineItems', 'receipts.accountHead', 'createdBy']);
+        $invoice->load(['client', 'lead', 'project', 'quotation', 'lineItems', 'receipts.accountHead', 'createdBy']);
 
         $logoPath = Setting::get('quotation_logo') ?: Setting::get('company_logo');
         $sigPath  = Setting::get('company_signature');

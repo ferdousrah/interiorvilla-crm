@@ -10,7 +10,7 @@ class InvoiceLineItem extends Model
 {
     use HasUuids;
 
-    protected $fillable = ['invoice_id', 'description', 'quantity', 'unit_rate', 'total', 'sequence'];
+    protected $fillable = ['invoice_id', 'description', 'unit', 'quantity', 'unit_rate', 'total', 'sequence'];
 
     protected function casts(): array
     {

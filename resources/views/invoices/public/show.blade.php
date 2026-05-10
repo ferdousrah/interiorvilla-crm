@@ -76,6 +76,8 @@
         table.items td.ctr { text-align: center; }
         table.items td.idx { color: #6b7280; font-size: 12.5px; width: 42px; text-align: center; }
         table.items td.desc { line-height: 1.55; color: #374151; }
+        table.items td.desc .title { font-weight: 700; color: #111827; display: block; margin-bottom: 3px; font-size: 13.5px; }
+        table.items td.desc .body { white-space: pre-line; }
 
         .totals-row td { background: #f3f4f6; font-weight: 700; padding: 9px 10px; font-size: 13px; }
         .totals-row td.num { color: #1f2937; }
@@ -211,36 +213,43 @@
             <table class="items">
                 <thead>
                     <tr>
-                        <th style="width:42px;">SL</th>
+                        <th style="width:24px;">SL</th>
                         <th>Description</th>
-                        <th class="num" style="width:70px;">Qty</th>
-                        <th class="num" style="width:90px;">Rate</th>
-                        <th class="num" style="width:110px;">Amount</th>
+                        <th class="num" style="width:60px;">Qty</th>
+                        <th class="ctr" style="width:50px;">Unit</th>
+                        <th class="num" style="width:80px;">Rate</th>
+                        <th class="num" style="width:100px;">Amount</th>
                     </tr>
                 </thead>
                 <tbody>
                     @forelse($invoice->lineItems as $i => $item)
+                        @php
+                            $lines = preg_split("/\r\n|\n|\r/", (string) $item->description, 2);
+                            $head = $lines[0] ?? '';
+                            $body = $lines[1] ?? null;
+                        @endphp
                         <tr>
                             <td class="idx">{{ $i + 1 }}</td>
-                            <td class="desc">{{ $item->description }}</td>
+                            <td class="desc">@if($body !== null && $body !== '')<span class="title">{{ $head }}</span><span class="body">{{ $body }}</span>@else<span class="body">{{ $head }}</span>@endif</td>
                             <td class="num">{{ number_format($item->quantity, 2) }}</td>
+                            <td class="ctr">{{ $item->unit }}</td>
                             <td class="num">{{ number_format($item->unit_rate, 2) }}</td>
                             <td class="num">{{ number_format($item->total, 2) }}</td>
                         </tr>
                     @empty
-                        <tr><td colspan="5" class="ctr" style="color:#9ca3af; padding:14px;">No line items</td></tr>
+                        <tr><td colspan="6" class="ctr" style="color:#9ca3af; padding:14px;">No line items</td></tr>
                     @endforelse
 
                     {{-- Subtotal --}}
                     <tr class="totals-row">
-                        <td colspan="4" style="text-align:right;">Subtotal</td>
+                        <td colspan="5" style="text-align:right;">Subtotal</td>
                         <td class="num">{{ number_format($invoice->subtotal, 2) }}</td>
                     </tr>
 
                     {{-- Discount --}}
                     @if((float) $invoice->discount_amount > 0)
                         <tr class="totals-row">
-                            <td colspan="4" style="text-align:right;">Discount</td>
+                            <td colspan="5" style="text-align:right;">Discount</td>
                             <td class="num" style="color:#dc2626;">− {{ number_format($invoice->discount_amount, 2) }}</td>
                         </tr>
                     @endif
@@ -248,21 +257,21 @@
                     {{-- VAT --}}
                     @if((float) $invoice->vat_amount > 0)
                         <tr class="totals-row">
-                            <td colspan="4" style="text-align:right;">VAT ({{ rtrim(rtrim(number_format($invoice->vat_pct, 2), '0'), '.') }}%)</td>
+                            <td colspan="5" style="text-align:right;">VAT ({{ rtrim(rtrim(number_format($invoice->vat_pct, 2), '0'), '.') }}%)</td>
                             <td class="num">{{ number_format($invoice->vat_amount, 2) }}</td>
                         </tr>
                     @endif
 
                     {{-- Grand Total --}}
                     <tr class="grand-row">
-                        <td colspan="4" style="text-align:right;">GRAND TOTAL</td>
-                        <td class="num">BDT {{ number_format($invoice->grand_total, 2) }}</td>
+                        <td colspan="5" style="text-align:right;">GRAND TOTAL (BDT)</td>
+                        <td class="num">{{ number_format($invoice->grand_total, 2) }}</td>
                     </tr>
 
                     {{-- Paid + Balance (only show if there's a payment) --}}
                     @if((float) $invoice->paid_amount > 0)
                         <tr class="paid-row">
-                            <td colspan="4" style="text-align:right;">Amount Paid</td>
+                            <td colspan="5" style="text-align:right;">Amount Paid</td>
                             <td class="num">{{ number_format($invoice->paid_amount, 2) }}</td>
                         </tr>
                     @endif
@@ -270,7 +279,7 @@
                     @php $balanceDue = (float) $invoice->grand_total - (float) $invoice->paid_amount; @endphp
                     @if($balanceDue > 0.01)
                         <tr class="balance-row">
-                            <td colspan="4" style="text-align:right;">BALANCE DUE</td>
+                            <td colspan="5" style="text-align:right;">BALANCE DUE</td>
                             <td class="num">BDT {{ number_format($balanceDue, 2) }}</td>
                         </tr>
                     @endif

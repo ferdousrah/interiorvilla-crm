@@ -129,6 +129,16 @@ export default function InvoiceShow({ invoice, company = {}, grandTotalInWords =
                     </button>
                 )}
             </PageHeader>
+            {invoice.quotation && (
+                <div className="px-4 sm:px-6 pt-4 print:hidden">
+                    <div className="text-xs text-gray-500">
+                        Created from quotation{' '}
+                        <Link href={route('quotations.show', invoice.quotation.id)} className="text-primary-600 hover:underline font-mono">
+                            {invoice.quotation.code}
+                        </Link>
+                    </div>
+                </div>
+            )}
             {showPayment && (
                 <div className="px-4 sm:px-6 pt-4 print:hidden">
                     <RecordPaymentForm invoice={invoice} onClose={() => setShowPayment(false)} />
@@ -189,9 +199,10 @@ export default function InvoiceShow({ invoice, company = {}, grandTotalInWords =
                             <table className="w-full text-[13.5px] border-collapse">
                                 <thead>
                                     <tr>
-                                        <th className="bg-gray-50 border border-gray-300 px-3 py-2 text-left font-bold w-12">SL</th>
+                                        <th className="bg-gray-50 border border-gray-300 px-3 py-2 text-center font-bold w-8">SL</th>
                                         <th className="bg-gray-50 border border-gray-300 px-3 py-2 text-left font-bold">Description</th>
                                         <th className="bg-gray-50 border border-gray-300 px-3 py-2 text-right font-bold w-20">Qty</th>
+                                        <th className="bg-gray-50 border border-gray-300 px-3 py-2 text-center font-bold w-14">Unit</th>
                                         <th className="bg-gray-50 border border-gray-300 px-3 py-2 text-right font-bold w-28">Rate</th>
                                         <th className="bg-gray-50 border border-gray-300 px-3 py-2 text-right font-bold w-32">Amount</th>
                                     </tr>
@@ -199,28 +210,43 @@ export default function InvoiceShow({ invoice, company = {}, grandTotalInWords =
                                 <tbody>
                                     {lineItems.length === 0 ? (
                                         <tr>
-                                            <td colSpan={5} className="border border-gray-200 px-3 py-6 text-center text-gray-400 italic">No line items</td>
+                                            <td colSpan={6} className="border border-gray-200 px-3 py-6 text-center text-gray-400 italic">No line items</td>
                                         </tr>
-                                    ) : lineItems.map((item, i) => (
-                                        <tr key={item.id ?? i}>
-                                            <td className="border border-gray-200 px-3 py-2 text-center text-gray-500 align-top">{i + 1}</td>
-                                            <td className="border border-gray-200 px-3 py-2 align-top whitespace-pre-line">{item.description}</td>
-                                            <td className="border border-gray-200 px-3 py-2 text-right tabular-nums align-top">{Number(item.quantity).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                            <td className="border border-gray-200 px-3 py-2 text-right tabular-nums align-top">{formatBDT(item.unit_rate)}</td>
-                                            <td className="border border-gray-200 px-3 py-2 text-right tabular-nums align-top">{formatBDT(item.total)}</td>
-                                        </tr>
-                                    ))}
+                                    ) : lineItems.map((item, i) => {
+                                        const lines = String(item.description ?? '').split('\n');
+                                        const head = lines[0] ?? '';
+                                        const body = lines.slice(1).join('\n');
+                                        return (
+                                            <tr key={item.id ?? i}>
+                                                <td className="border border-gray-200 px-3 py-2 text-center text-gray-500 align-top">{i + 1}</td>
+                                                <td className="border border-gray-200 px-3 py-2 align-top">
+                                                    {body ? (
+                                                        <>
+                                                            <div className="font-bold text-gray-900 mb-1 text-[14px]">{head}</div>
+                                                            <div className="whitespace-pre-line leading-relaxed">{body}</div>
+                                                        </>
+                                                    ) : (
+                                                        <div className="whitespace-pre-line leading-relaxed">{head}</div>
+                                                    )}
+                                                </td>
+                                                <td className="border border-gray-200 px-3 py-2 text-right tabular-nums align-top">{Number(item.quantity).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                                <td className="border border-gray-200 px-3 py-2 text-center align-top">{item.unit ?? ''}</td>
+                                                <td className="border border-gray-200 px-3 py-2 text-right tabular-nums align-top">{formatBDT(item.unit_rate)}</td>
+                                                <td className="border border-gray-200 px-3 py-2 text-right tabular-nums align-top">{formatBDT(item.total)}</td>
+                                            </tr>
+                                        );
+                                    })}
 
                                     {/* Subtotal */}
                                     <tr>
-                                        <td className="bg-gray-100 border border-gray-300 px-3 py-2 font-bold text-right" colSpan={4}>Subtotal</td>
+                                        <td className="bg-gray-100 border border-gray-300 px-3 py-2 font-bold text-right" colSpan={5}>Subtotal</td>
                                         <td className="bg-gray-100 border border-gray-300 px-3 py-2 text-right font-bold tabular-nums">{formatBDT(invoice.subtotal)}</td>
                                     </tr>
 
                                     {/* Discount */}
                                     {parseFloat(invoice.discount_amount) > 0 && (
                                         <tr>
-                                            <td className="bg-gray-100 border border-gray-300 px-3 py-2 font-bold text-right" colSpan={4}>Discount</td>
+                                            <td className="bg-gray-100 border border-gray-300 px-3 py-2 font-bold text-right" colSpan={5}>Discount</td>
                                             <td className="bg-gray-100 border border-gray-300 px-3 py-2 text-right font-bold tabular-nums text-red-600">− {formatBDT(invoice.discount_amount)}</td>
                                         </tr>
                                     )}
@@ -228,21 +254,21 @@ export default function InvoiceShow({ invoice, company = {}, grandTotalInWords =
                                     {/* VAT */}
                                     {parseFloat(invoice.vat_amount) > 0 && (
                                         <tr>
-                                            <td className="bg-gray-100 border border-gray-300 px-3 py-2 font-bold text-right" colSpan={4}>VAT ({invoice.vat_pct}%)</td>
+                                            <td className="bg-gray-100 border border-gray-300 px-3 py-2 font-bold text-right" colSpan={5}>VAT ({invoice.vat_pct}%)</td>
                                             <td className="bg-gray-100 border border-gray-300 px-3 py-2 text-right font-bold tabular-nums">{formatBDT(invoice.vat_amount)}</td>
                                         </tr>
                                     )}
 
                                     {/* Grand Total */}
                                     <tr>
-                                        <td className="bg-gray-900 border border-gray-900 px-3 py-2.5 text-white font-bold text-right text-[15px]" colSpan={4}>GRAND TOTAL</td>
-                                        <td className="bg-gray-900 border border-gray-900 px-3 py-2.5 text-amber-300 font-bold text-right tabular-nums text-[15px]">BDT {formatBDT(invoice.grand_total)}</td>
+                                        <td className="bg-gray-900 border border-gray-900 px-3 py-2.5 text-white font-bold text-right text-[15px]" colSpan={5}>GRAND TOTAL (BDT)</td>
+                                        <td className="bg-gray-900 border border-gray-900 px-3 py-2.5 text-amber-300 font-bold text-right tabular-nums text-[15px]">{formatBDT(invoice.grand_total)}</td>
                                     </tr>
 
                                     {/* Paid */}
                                     {parseFloat(invoice.paid_amount) > 0 && (
                                         <tr>
-                                            <td className="bg-emerald-50 border border-emerald-200 px-3 py-2 font-bold text-emerald-800 text-right" colSpan={4}>Amount Paid</td>
+                                            <td className="bg-emerald-50 border border-emerald-200 px-3 py-2 font-bold text-emerald-800 text-right" colSpan={5}>Amount Paid</td>
                                             <td className="bg-emerald-50 border border-emerald-200 px-3 py-2 text-right font-bold tabular-nums text-emerald-800">{formatBDT(invoice.paid_amount)}</td>
                                         </tr>
                                     )}
@@ -250,7 +276,7 @@ export default function InvoiceShow({ invoice, company = {}, grandTotalInWords =
                                     {/* Balance Due */}
                                     {balanceDue > 0.01 && (
                                         <tr>
-                                            <td className="bg-red-50 border border-red-200 px-3 py-2.5 font-bold text-red-800 text-right text-[14px]" colSpan={4}>BALANCE DUE</td>
+                                            <td className="bg-red-50 border border-red-200 px-3 py-2.5 font-bold text-red-800 text-right text-[14px]" colSpan={5}>BALANCE DUE</td>
                                             <td className="bg-red-50 border border-red-200 px-3 py-2.5 text-right font-bold tabular-nums text-red-800 text-[14px]">BDT {formatBDT(balanceDue)}</td>
                                         </tr>
                                     )}

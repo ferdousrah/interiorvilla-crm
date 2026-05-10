@@ -10,14 +10,18 @@ export default function InvoiceCreate({ clients, leads = [], projects, incomeSou
         : (prefill.lead_id ? 'Visit Charge' : (incomeSources[0] ?? 'Project'));
 
     const { data, setData, post, processing, errors } = useForm({
-        client_id:  prefill.client_id  ?? '',
-        lead_id:    prefill.lead_id    ?? '',
-        project_id: prefill.project_id ?? '',
+        client_id:    prefill.client_id    ?? '',
+        lead_id:      prefill.lead_id      ?? '',
+        project_id:   prefill.project_id   ?? '',
+        quotation_id: prefill.quotation_id ?? '',
         income_source: initialSource,
         invoice_date: new Date().toISOString().substring(0, 10),
-        due_date: '', notes: '', terms: '', status: 'draft',
-        vat_pct: '0', discount_amount: '0',
-        items: [{ description: '', quantity: '1', unit_rate: '' }],
+        due_date: '', notes: '', terms: prefill.terms ?? '', status: 'draft',
+        vat_pct: prefill.vat_pct != null ? String(prefill.vat_pct) : '0',
+        discount_amount: prefill.discount_amount != null ? String(prefill.discount_amount) : '0',
+        items: prefill.items?.length
+            ? prefill.items.map(i => ({ description: i.description ?? '', unit: i.unit ?? '', quantity: i.quantity ?? '1', unit_rate: i.unit_rate ?? '' }))
+            : [{ description: '', unit: '', quantity: '1', unit_rate: '' }],
     });
 
     function onProjectChange(v) {
@@ -30,7 +34,7 @@ export default function InvoiceCreate({ clients, leads = [], projects, incomeSou
     }
 
     function addItem() {
-        setData('items', [...data.items, { description: '', quantity: '1', unit_rate: '' }]);
+        setData('items', [...data.items, { description: '', unit: '', quantity: '1', unit_rate: '' }]);
     }
     function removeItem(i) {
         setData('items', data.items.filter((_, idx) => idx !== i));
@@ -55,6 +59,13 @@ export default function InvoiceCreate({ clients, leads = [], projects, incomeSou
             <Head title="New Invoice" />
             <PageHeader title="New Invoice" back={route('accounts.invoices.index')} />
             <div className="p-4 sm:p-6 max-w-4xl">
+                {prefill.quotation && (
+                    <div className="mb-4 px-4 py-3 bg-emerald-50 border border-emerald-200 rounded text-sm text-emerald-800 flex items-center gap-2">
+                        <span className="font-semibold">Creating from quotation:</span>
+                        <span className="font-mono">{prefill.quotation.display_code || prefill.quotation.code}</span>
+                        <span className="text-emerald-600 text-xs ml-auto">Line items, VAT % and discount have been pre-filled — edit as needed.</span>
+                    </div>
+                )}
                 <form onSubmit={submit} className="space-y-4">
                     <div className="card p-6">
                         <p className="text-xs text-gray-500 mb-4">
@@ -118,7 +129,8 @@ export default function InvoiceCreate({ clients, leads = [], projects, incomeSou
                         <table className="min-w-full text-sm">
                             <thead><tr className="text-xs text-gray-500">
                                 <th className="text-left pb-2">Description</th>
-                                <th className="text-left pb-2 w-24">Qty</th>
+                                <th className="text-left pb-2 w-20">Unit</th>
+                                <th className="text-left pb-2 w-20">Qty</th>
                                 <th className="text-left pb-2 w-28">Unit Rate</th>
                                 <th className="text-right pb-2 w-28">Total</th>
                                 <th className="w-8"></th>
@@ -127,8 +139,9 @@ export default function InvoiceCreate({ clients, leads = [], projects, incomeSou
                                 {data.items.map((item, i) => {
                                     const total = (parseFloat(item.quantity) || 0) * (parseFloat(item.unit_rate) || 0);
                                     return (
-                                        <tr key={i}>
-                                            <td className="pr-2 pb-2"><input className="form-input text-sm" value={item.description} onChange={e => updateItem(i, 'description', e.target.value)} /></td>
+                                        <tr key={i} className="align-top">
+                                            <td className="pr-2 pb-2"><textarea rows={2} className="form-input text-sm leading-snug" value={item.description} onChange={e => updateItem(i, 'description', e.target.value)} /></td>
+                                            <td className="pr-2 pb-2"><input className="form-input text-sm" value={item.unit ?? ''} onChange={e => updateItem(i, 'unit', e.target.value)} placeholder="sft" /></td>
                                             <td className="pr-2 pb-2"><input type="number" className="form-input text-sm" value={item.quantity} onChange={e => updateItem(i, 'quantity', e.target.value)} /></td>
                                             <td className="pr-2 pb-2"><input type="number" className="form-input text-sm" value={item.unit_rate} onChange={e => updateItem(i, 'unit_rate', e.target.value)} /></td>
                                             <td className="pb-2 text-right text-gray-600">{total.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>

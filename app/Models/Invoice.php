@@ -15,7 +15,7 @@ class Invoice extends Model
     use HasUuids, SoftDeletes, Auditable;
 
     protected $fillable = [
-        'code', 'client_id', 'lead_id', 'project_id', 'status', 'invoice_date', 'due_date',
+        'code', 'client_id', 'lead_id', 'project_id', 'quotation_id', 'status', 'invoice_date', 'due_date',
         'subtotal', 'vat_pct', 'vat_amount', 'discount_amount', 'grand_total',
         'income_source', 'paid_amount', 'notes', 'terms', 'created_by',
     ];
@@ -47,6 +47,11 @@ class Invoice extends Model
     public function project(): BelongsTo
     {
         return $this->belongsTo(Project::class);
+    }
+
+    public function quotation(): BelongsTo
+    {
+        return $this->belongsTo(Quotation::class);
     }
 
     public function createdBy(): BelongsTo

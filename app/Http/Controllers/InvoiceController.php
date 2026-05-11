@@ -215,7 +215,7 @@ class InvoiceController extends Controller
         // If creating from an approved quotation, prefill entity refs + line items
         if ($qid = $request->get('quotation_id')) {
             $quotation = Quotation::with('items')->find($qid);
-            if ($quotation && $quotation->status === 'approved') {
+            if ($quotation && in_array($quotation->status, ['approved', 'converted'])) {
                 $prefill['quotation_id']    = $quotation->id;
                 $prefill['quotation']       = ['id' => $quotation->id, 'code' => $quotation->code, 'display_code' => $quotation->display_code];
                 $prefill['client_id']       = $quotation->client_id ?: $prefill['client_id'];
@@ -237,6 +237,20 @@ class InvoiceController extends Controller
             'clients'  => Client::where('is_active', true)->select('id', 'name', 'code', 'phone')->orderBy('name')->get(),
             'leads'    => Lead::whereNotIn('status', ['won', 'lost'])->select('id', 'name', 'phone', 'code')->orderBy('name')->get(),
             'projects' => Project::whereNotIn('status', ['completed', 'cancelled'])->select('id', 'name', 'code')->get(),
+            'approvedQuotations' => Quotation::whereIn('status', ['approved', 'converted'])
+                ->whereNull('deleted_at')
+                ->with(['client:id,name', 'lead:id,name'])
+                ->orderByDesc('created_at')
+                ->get()
+                ->map(fn($q) => [
+                    'id'           => $q->id,
+                    'code'         => $q->code,
+                    'display_code' => $q->display_code,
+                    'subject'      => $q->subject,
+                    'grand_total'  => (float) $q->grand_total,
+                    'party'        => $q->client?->name ?? $q->lead?->name ?? '—',
+                ])
+                ->values(),
             'incomeSources' => config('services_catalog.income_sources', []),
             'prefill'  => $prefill,
         ]);

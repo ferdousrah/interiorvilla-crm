@@ -1,10 +1,10 @@
-import { Head, useForm } from '@inertiajs/react';
+import { Head, router, useForm } from '@inertiajs/react';
 import AppLayout from '@/Layouts/AppLayout';
 import PageHeader from '@/Components/PageHeader';
 import FormField from '@/Components/FormField';
 import { PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
 
-export default function InvoiceCreate({ clients, leads = [], projects, incomeSources = [], prefill = {} }) {
+export default function InvoiceCreate({ clients, leads = [], projects, approvedQuotations = [], incomeSources = [], prefill = {} }) {
     const initialSource = prefill.project_id
         ? 'Project'
         : (prefill.lead_id ? 'Visit Charge' : (incomeSources[0] ?? 'Project'));
@@ -59,11 +59,32 @@ export default function InvoiceCreate({ clients, leads = [], projects, incomeSou
             <Head title="New Invoice" />
             <PageHeader title="New Invoice" back={route('accounts.invoices.index')} />
             <div className="p-4 sm:p-6 max-w-4xl">
-                {prefill.quotation && (
+                {prefill.quotation ? (
                     <div className="mb-4 px-4 py-3 bg-emerald-50 border border-emerald-200 rounded text-sm text-emerald-800 flex items-center gap-2">
                         <span className="font-semibold">Creating from quotation:</span>
                         <span className="font-mono">{prefill.quotation.display_code || prefill.quotation.code}</span>
-                        <span className="text-emerald-600 text-xs ml-auto">Line items, VAT % and discount have been pre-filled — edit as needed.</span>
+                        <button type="button"
+                            onClick={() => router.get(route('accounts.invoices.create'), {}, { replace: true })}
+                            className="text-emerald-700 hover:text-emerald-900 text-xs ml-2 underline">Clear</button>
+                        <span className="text-emerald-600 text-xs ml-auto">Line items, VAT % and discount pre-filled — edit as needed.</span>
+                    </div>
+                ) : approvedQuotations.length > 0 && (
+                    <div className="card p-4 mb-4">
+                        <FormField label="Pre-fill from approved Quotation" hint="Optional — pulls client, line items, VAT % and discount from the selected quotation.">
+                            <select className="form-input text-sm" defaultValue=""
+                                onChange={e => {
+                                    if (e.target.value) {
+                                        router.get(route('accounts.invoices.create'), { quotation_id: e.target.value }, { replace: true });
+                                    }
+                                }}>
+                                <option value="">— start from scratch —</option>
+                                {approvedQuotations.map(q => (
+                                    <option key={q.id} value={q.id}>
+                                        {q.display_code || q.code} — {q.party} — {q.subject?.slice(0, 60)}
+                                    </option>
+                                ))}
+                            </select>
+                        </FormField>
                     </div>
                 )}
                 <form onSubmit={submit} className="space-y-4">

@@ -19,6 +19,8 @@ export default function InvoiceCreate({ clients, leads = [], projects, approvedQ
         due_date: '', notes: '', terms: prefill.terms ?? '', status: 'draft',
         vat_pct: prefill.vat_pct != null ? String(prefill.vat_pct) : '0',
         discount_amount: prefill.discount_amount != null ? String(prefill.discount_amount) : '0',
+        transportation_amount: prefill.transportation_amount != null ? String(prefill.transportation_amount) : '0',
+        supervision_pct: prefill.supervision_pct != null ? String(prefill.supervision_pct) : '0',
         items: prefill.items?.length
             ? prefill.items.map(i => ({ description: i.description ?? '', unit: i.unit ?? '', quantity: i.quantity ?? '1', unit_rate: i.unit_rate ?? '' }))
             : [{ description: '', unit: '', quantity: '1', unit_rate: '' }],
@@ -45,9 +47,13 @@ export default function InvoiceCreate({ clients, leads = [], projects, approvedQ
         setData('items', items);
     }
 
-    const subtotal = data.items.reduce((s, it) => s + (parseFloat(it.quantity) || 0) * (parseFloat(it.unit_rate) || 0), 0);
-    const vatAmount = subtotal * (parseFloat(data.vat_pct || 0) / 100);
-    const grandTotal = subtotal + vatAmount - parseFloat(data.discount_amount || 0);
+    const subtotal       = data.items.reduce((s, it) => s + (parseFloat(it.quantity) || 0) * (parseFloat(it.unit_rate) || 0), 0);
+    const discount       = parseFloat(data.discount_amount || 0);
+    const transportation = parseFloat(data.transportation_amount || 0);
+    const afterDiscount  = subtotal - discount;
+    const vatAmount      = afterDiscount * (parseFloat(data.vat_pct || 0) / 100);
+    const supervisionAmount = (afterDiscount + transportation) * (parseFloat(data.supervision_pct || 0) / 100);
+    const grandTotal     = afterDiscount + transportation + supervisionAmount + vatAmount;
 
     function submit(e) {
         e.preventDefault();
@@ -185,7 +191,17 @@ export default function InvoiceCreate({ clients, leads = [], projects, approvedQ
                             <div className="flex justify-end gap-4 items-center">
                                 <span className="text-gray-500">Discount</span>
                                 <input type="number" className="form-input text-sm w-28 text-right" value={data.discount_amount} onChange={e => setData('discount_amount', e.target.value)} />
-                                <span className="w-28" />
+                                <span className="w-28 text-right text-rose-600">{discount > 0 ? `− ${discount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : ''}</span>
+                            </div>
+                            <div className="flex justify-end gap-4 items-center">
+                                <span className="text-gray-500">Transportation</span>
+                                <input type="number" className="form-input text-sm w-28 text-right" value={data.transportation_amount} onChange={e => setData('transportation_amount', e.target.value)} />
+                                <span className="w-28 text-right text-gray-700">{transportation > 0 ? `+ ${transportation.toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : ''}</span>
+                            </div>
+                            <div className="flex justify-end gap-4 items-center">
+                                <span className="text-gray-500">Supervision & Implementation %</span>
+                                <input type="number" className="form-input text-sm w-28 text-right" value={data.supervision_pct} onChange={e => setData('supervision_pct', e.target.value)} />
+                                <span className="w-28 text-right text-gray-700">{supervisionAmount > 0 ? `+ ${supervisionAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : ''}</span>
                             </div>
                             <div className="flex justify-end gap-8 font-bold text-primary-700 pt-2 border-t">
                                 <span>Grand Total</span>

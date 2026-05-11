@@ -209,6 +209,8 @@ class InvoiceController extends Controller
             'items'        => null,
             'vat_pct'      => null,
             'discount_amount' => null,
+            'transportation_amount' => null,
+            'supervision_pct' => null,
             'terms'        => null,
         ];
 
@@ -221,9 +223,11 @@ class InvoiceController extends Controller
                 $prefill['client_id']       = $quotation->client_id ?: $prefill['client_id'];
                 $prefill['lead_id']         = $quotation->lead_id   ?: $prefill['lead_id'];
                 $prefill['project_id']      = $quotation->project_id ?: $prefill['project_id'];
-                $prefill['vat_pct']         = (float) $quotation->vat_pct;
-                $prefill['discount_amount'] = (float) $quotation->discount_amount;
-                $prefill['terms']           = $quotation->terms;
+                $prefill['vat_pct']               = (float) $quotation->vat_pct;
+                $prefill['discount_amount']       = (float) $quotation->discount_amount;
+                $prefill['transportation_amount'] = (float) $quotation->transportation_amount;
+                $prefill['supervision_pct']       = (float) $quotation->supervision_pct;
+                $prefill['terms']                 = $quotation->terms;
                 $prefill['items']           = $quotation->items->map(fn($it) => [
                     'description' => trim(($it->item_name ? $it->item_name . "\n" : '') . ($it->description ?? '')),
                     'unit'        => $it->unit,
@@ -272,6 +276,8 @@ class InvoiceController extends Controller
             'due_date' => 'required|date|after_or_equal:invoice_date',
             'vat_pct' => 'nullable|numeric|min:0|max:100',
             'discount_amount' => 'nullable|numeric|min:0',
+            'transportation_amount' => 'nullable|numeric|min:0',
+            'supervision_pct' => 'nullable|numeric|min:0|max:100',
             'notes' => 'nullable|string',
             'terms' => 'nullable|string',
             'status' => 'required|in:draft,sent',
@@ -297,11 +303,19 @@ class InvoiceController extends Controller
         $invoice = DB::transaction(function () use ($validated) {
             $code = $this->codeGenerator->generate('INV', 'invoices');
 
-            $subtotal = collect($validated['items'])->sum(fn($i) => $i['quantity'] * $i['unit_rate']);
-            $vatPct = $validated['vat_pct'] ?? 0;
-            $vatAmount = $subtotal * ($vatPct / 100);
-            $discount = $validated['discount_amount'] ?? 0;
-            $grandTotal = $subtotal + $vatAmount - $discount;
+            $subtotal       = (float) collect($validated['items'])->sum(fn($i) => $i['quantity'] * $i['unit_rate']);
+            $discount       = (float) ($validated['discount_amount'] ?? 0);
+            $transportation = (float) ($validated['transportation_amount'] ?? 0);
+            $afterDiscount  = $subtotal - $discount;
+
+            $vatPct         = (float) ($validated['vat_pct'] ?? 0);
+            $vatAmount      = round($afterDiscount * $vatPct / 100, 2);
+
+            // Mirrors quotation: supervision applies on (subtotal - discount + transportation), excludes VAT.
+            $supervisionPct    = (float) ($validated['supervision_pct'] ?? 0);
+            $supervisionAmount = round(($afterDiscount + $transportation) * $supervisionPct / 100, 2);
+
+            $grandTotal     = round($afterDiscount + $transportation + $supervisionAmount + $vatAmount, 2);
 
             $invoice = Invoice::create(array_merge(
                 \Illuminate\Support\Arr::except($validated, ['items']),
@@ -309,6 +323,7 @@ class InvoiceController extends Controller
                     'code' => $code,
                     'subtotal' => $subtotal,
                     'vat_amount' => $vatAmount,
+                    'supervision_amount' => $supervisionAmount,
                     'grand_total' => $grandTotal,
                     'created_by' => auth()->id(),
                 ]

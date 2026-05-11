@@ -16,7 +16,9 @@ class Invoice extends Model
 
     protected $fillable = [
         'code', 'client_id', 'lead_id', 'project_id', 'quotation_id', 'status', 'invoice_date', 'due_date',
-        'subtotal', 'vat_pct', 'vat_amount', 'discount_amount', 'grand_total',
+        'subtotal', 'vat_pct', 'vat_amount', 'discount_amount',
+        'transportation_amount', 'supervision_pct', 'supervision_amount',
+        'grand_total',
         'income_source', 'paid_amount', 'notes', 'terms', 'created_by',
     ];
 
@@ -29,6 +31,9 @@ class Invoice extends Model
             'vat_pct' => 'decimal:2',
             'vat_amount' => 'decimal:2',
             'discount_amount' => 'decimal:2',
+            'transportation_amount' => 'decimal:2',
+            'supervision_pct' => 'decimal:2',
+            'supervision_amount' => 'decimal:2',
             'grand_total' => 'decimal:2',
             'paid_amount' => 'decimal:2',
         ];

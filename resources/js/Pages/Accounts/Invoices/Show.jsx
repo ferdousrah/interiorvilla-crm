@@ -278,11 +278,37 @@ export default function InvoiceShow({ invoice, accountHeads = [], company = {}, 
                                         </tr>
                                     )}
 
+                                    {/* Transportation */}
+                                    {parseFloat(invoice.transportation_amount) > 0 && (
+                                        <tr>
+                                            <td className="bg-gray-100 border border-gray-300 px-3 py-2 font-bold text-right" colSpan={5}>Transportation</td>
+                                            <td className="bg-gray-100 border border-gray-300 px-3 py-2 text-right font-bold tabular-nums">{formatBDT(invoice.transportation_amount)}</td>
+                                        </tr>
+                                    )}
+
+                                    {/* Sub-total before VAT/Supervision (only show when there are extras to make the breakdown easier to follow) */}
+                                    {(parseFloat(invoice.discount_amount) > 0 || parseFloat(invoice.transportation_amount) > 0) && (parseFloat(invoice.vat_amount) > 0 || parseFloat(invoice.supervision_amount) > 0) && (
+                                        <tr>
+                                            <td className="bg-gray-50 border border-gray-300 px-3 py-2 font-semibold text-right text-gray-700" colSpan={5}>Total</td>
+                                            <td className="bg-gray-50 border border-gray-300 px-3 py-2 text-right font-semibold tabular-nums text-gray-700">
+                                                {formatBDT(parseFloat(invoice.subtotal) - parseFloat(invoice.discount_amount || 0) + parseFloat(invoice.transportation_amount || 0))}
+                                            </td>
+                                        </tr>
+                                    )}
+
                                     {/* VAT */}
                                     {parseFloat(invoice.vat_amount) > 0 && (
                                         <tr>
                                             <td className="bg-gray-100 border border-gray-300 px-3 py-2 font-bold text-right" colSpan={5}>VAT ({invoice.vat_pct}%)</td>
                                             <td className="bg-gray-100 border border-gray-300 px-3 py-2 text-right font-bold tabular-nums">{formatBDT(invoice.vat_amount)}</td>
+                                        </tr>
+                                    )}
+
+                                    {/* Supervision & Implementation */}
+                                    {parseFloat(invoice.supervision_amount) > 0 && (
+                                        <tr>
+                                            <td className="bg-gray-100 border border-gray-300 px-3 py-2 font-bold text-right" colSpan={5}>Supervision & Implementation {invoice.supervision_pct}%</td>
+                                            <td className="bg-gray-100 border border-gray-300 px-3 py-2 text-right font-bold tabular-nums">{formatBDT(invoice.supervision_amount)}</td>
                                         </tr>
                                     )}
 

@@ -254,11 +254,35 @@
                         </tr>
                     @endif
 
+                    {{-- Transportation --}}
+                    @if((float) $invoice->transportation_amount > 0)
+                        <tr class="totals-row">
+                            <td colspan="5" style="text-align:right;">Transportation</td>
+                            <td class="num">{{ number_format($invoice->transportation_amount, 2) }}</td>
+                        </tr>
+                    @endif
+
+                    {{-- Total before VAT/Supervision (shown only when there's extras to clarify the breakdown) --}}
+                    @if(((float) $invoice->discount_amount > 0 || (float) $invoice->transportation_amount > 0) && ((float) $invoice->vat_amount > 0 || (float) $invoice->supervision_amount > 0))
+                        <tr class="totals-row">
+                            <td colspan="5" style="text-align:right;">Total</td>
+                            <td class="num">{{ number_format((float) $invoice->subtotal - (float) $invoice->discount_amount + (float) $invoice->transportation_amount, 2) }}</td>
+                        </tr>
+                    @endif
+
                     {{-- VAT --}}
                     @if((float) $invoice->vat_amount > 0)
                         <tr class="totals-row">
                             <td colspan="5" style="text-align:right;">VAT ({{ rtrim(rtrim(number_format($invoice->vat_pct, 2), '0'), '.') }}%)</td>
                             <td class="num">{{ number_format($invoice->vat_amount, 2) }}</td>
+                        </tr>
+                    @endif
+
+                    {{-- Supervision & Implementation --}}
+                    @if((float) $invoice->supervision_amount > 0)
+                        <tr class="totals-row">
+                            <td colspan="5" style="text-align:right;">Supervision &amp; Implementation {{ rtrim(rtrim(number_format($invoice->supervision_pct, 2), '0'), '.') }}%</td>
+                            <td class="num">{{ number_format($invoice->supervision_amount, 2) }}</td>
                         </tr>
                     @endif
 

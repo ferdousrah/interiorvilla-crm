@@ -8,7 +8,7 @@ import { formatBDT, formatDate } from '@/utils/formatters';
 import { Fragment, useState } from 'react';
 import axios from 'axios';
 import {
-    EnvelopeIcon, ShareIcon, LinkIcon, DocumentArrowDownIcon, PrinterIcon, BanknotesIcon, TrashIcon,
+    EnvelopeIcon, ShareIcon, LinkIcon, DocumentArrowDownIcon, PrinterIcon, BanknotesIcon, TrashIcon, PencilIcon,
 } from '@heroicons/react/24/outline';
 
 const STATUS_COLORS = { draft: 'gray', sent: 'info', partial: 'warning', paid: 'success', overdue: 'danger', cancelled: 'danger' };
@@ -149,6 +149,11 @@ export default function InvoiceShow({ invoice, accountHeads = [], company = {}, 
                     <button onClick={() => setShowPayment(!showPayment)} className="btn btn-secondary flex items-center gap-2 text-sm">
                         <BanknotesIcon className="w-4 h-4" /> Record Payment
                     </button>
+                )}
+                {canDelete && (
+                    <Link href={route('accounts.invoices.edit', invoice.id)} className="btn flex items-center gap-2 text-sm" title="Edit this invoice (no payments recorded yet)">
+                        <PencilIcon className="w-4 h-4" /> Edit
+                    </Link>
                 )}
                 {canDelete && (
                     <button onClick={doDelete} className="btn btn-danger flex items-center gap-2 text-sm" title="Delete this invoice (no payments recorded yet)">

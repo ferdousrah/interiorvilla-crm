@@ -382,12 +382,23 @@ class InvoiceController extends Controller
     public function edit(Invoice $invoice): Response
     {
         $this->authorize('update', $invoice);
+
+        // Edit is only allowed when no payments have been recorded — otherwise
+        // changing totals would diverge from the recorded receipts.
+        abort_if(
+            $invoice->receipts()->exists() || (float) $invoice->paid_amount > 0,
+            403,
+            'Cannot edit: this invoice has payment receipts. Delete the receipts first.'
+        );
+
         $invoice->load(['client', 'lead', 'project', 'lineItems']);
+
         return Inertia::render('Accounts/Invoices/Edit', [
-            'invoice' => $invoice,
-            'clients' => Client::where('is_active', true)->select('id', 'name', 'code')->get(),
-            'leads'   => Lead::whereNotIn('status', ['won', 'lost'])->select('id', 'name', 'phone', 'code')->orderBy('name')->get(),
-            'projects' => Project::whereNotIn('status', ['completed', 'cancelled'])->select('id', 'name', 'code')->get(),
+            'invoice'       => $invoice,
+            'clients'       => Client::where('is_active', true)->select('id', 'name', 'code', 'phone')->orderBy('name')->get(),
+            'leads'         => Lead::whereNotIn('status', ['won', 'lost'])->select('id', 'name', 'phone', 'code')->orderBy('name')->get(),
+            'projects'      => Project::whereNotIn('status', ['completed', 'cancelled'])->select('id', 'name', 'code')->get(),
+            'incomeSources' => config('services_catalog.income_sources', []),
         ]);
     }
 
@@ -395,18 +406,87 @@ class InvoiceController extends Controller
     {
         $this->authorize('update', $invoice);
 
-        abort_if($invoice->status === 'paid', 403, 'Cannot edit a paid invoice.');
+        // Same guard as edit() — no edits once any payment is in the books.
+        if ($invoice->receipts()->exists() || (float) $invoice->paid_amount > 0) {
+            return back()->with('error', 'Cannot edit: this invoice has payment receipts.');
+        }
+
+        $incomeSources = config('services_catalog.income_sources', []);
 
         $validated = $request->validate([
-            'due_date' => 'required|date',
+            'client_id'   => 'nullable|uuid|exists:clients,id',
+            'lead_id'     => 'nullable|uuid|exists:leads,id',
+            'project_id'  => 'nullable|uuid|exists:projects,id',
+            'income_source' => ['nullable', 'string', 'in:' . implode(',', $incomeSources)],
+            'invoice_date' => 'required|date',
+            'due_date' => 'required|date|after_or_equal:invoice_date',
+            'vat_pct' => 'nullable|numeric|min:0|max:100',
+            'discount_amount' => 'nullable|numeric|min:0',
+            'transportation_amount' => 'nullable|numeric|min:0',
+            'supervision_pct' => 'nullable|numeric|min:0|max:100',
             'notes' => 'nullable|string',
             'terms' => 'nullable|string',
             'status' => 'required|in:draft,sent,cancelled',
+            'items' => 'required|array|min:1',
+            'items.*.description' => 'required|string|max:1000',
+            'items.*.unit' => 'nullable|string|max:30',
+            'items.*.quantity' => 'required|numeric|min:0.01',
+            'items.*.unit_rate' => 'required|numeric|min:0',
+            'items.*.sequence' => 'nullable|integer',
         ]);
 
-        $invoice->update($validated);
+        if (empty($validated['client_id']) && empty($validated['lead_id'])) {
+            return back()->withErrors(['client_id' => 'Select a client or at least a lead.'])->withInput();
+        }
 
-        return back()->with('success', 'Invoice updated.');
+        if (empty($validated['income_source'])) {
+            $validated['income_source'] = !empty($validated['project_id']) ? 'Project'
+                : (!empty($validated['lead_id']) ? 'Visit Charge' : 'Project');
+        }
+
+        DB::transaction(function () use ($validated, $invoice) {
+            $subtotal       = (float) collect($validated['items'])->sum(fn($i) => $i['quantity'] * $i['unit_rate']);
+            $discount       = (float) ($validated['discount_amount'] ?? 0);
+            $transportation = (float) ($validated['transportation_amount'] ?? 0);
+            $afterDiscount  = $subtotal - $discount;
+
+            $vatPct         = (float) ($validated['vat_pct'] ?? 0);
+            $vatAmount      = round($afterDiscount * $vatPct / 100, 2);
+
+            $supervisionPct    = (float) ($validated['supervision_pct'] ?? 0);
+            $supervisionAmount = round(($afterDiscount + $transportation) * $supervisionPct / 100, 2);
+
+            $grandTotal     = round($afterDiscount + $transportation + $supervisionAmount + $vatAmount, 2);
+
+            $invoice->update(array_merge(
+                \Illuminate\Support\Arr::except($validated, ['items']),
+                [
+                    'subtotal' => $subtotal,
+                    'vat_amount' => $vatAmount,
+                    'supervision_amount' => $supervisionAmount,
+                    'grand_total' => $grandTotal,
+                ]
+            ));
+
+            // Replace line items
+            $invoice->lineItems()->delete();
+            foreach ($validated['items'] as $idx => $item) {
+                $invoice->lineItems()->create(array_merge($item, [
+                    'total' => $item['quantity'] * $item['unit_rate'],
+                    'sequence' => $item['sequence'] ?? $idx,
+                ]));
+            }
+
+            // Re-post the journal entry so AR + Revenue match the new totals
+            \App\Models\JournalEntry::where('reference_type', 'invoice')
+                ->where('reference_id', $invoice->id)
+                ->delete(); // cascades to journal_lines
+        });
+
+        // Re-post outside the transaction with the fresh state
+        $this->accounting->postInvoiceCreated($invoice->fresh(['client', 'lead']));
+
+        return redirect()->route('accounts.invoices.show', $invoice)->with('success', 'Invoice updated.');
     }
 
     public function destroy(Invoice $invoice): RedirectResponse

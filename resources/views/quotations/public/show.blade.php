@@ -110,7 +110,7 @@
         }
         .boq td.num { text-align: right; white-space: nowrap; }
         .boq td.ctr { text-align: center; }
-        .boq td.idx { color: #6b7280; font-size: 12.5px; width: 42px; text-align: center; }
+        .boq td.idx { color: #6b7280; font-size: 12.5px; width: 26px; text-align: center; }
 
         .boq tr.section-header td {
             background: #eef5eb;
@@ -346,11 +346,11 @@
             <table class="boq">
                 <thead>
                     <tr>
-                        <th style="width:24px;">SL</th>
+                        <th style="width:20px;">SL</th>
                         <th>Description</th>
-                        <th class="num" style="width:60px;">Quantity</th>
-                        <th class="ctr" style="width:50px;">Unit</th>
-                        <th class="num" style="width:70px;">Rate</th>
+                        <th class="num" style="width:42px;">Qty</th>
+                        <th class="ctr" style="width:36px;">Unit</th>
+                        <th class="num" style="width:55px;">Rate</th>
                         <th class="num" style="width:90px;">Amount</th>
                     </tr>
                 </thead>

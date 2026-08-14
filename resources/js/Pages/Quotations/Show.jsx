@@ -309,7 +309,7 @@ export default function QuotationShow({ quotation, company = {}, grandTotalInWor
                             <tr>
                                 <th className="bg-gray-50 border border-gray-300 px-3 py-2 text-center font-bold w-8">SL</th>
                                 <th className="bg-gray-50 border border-gray-300 px-3 py-2 text-left font-bold">Description</th>
-                                <th className="bg-gray-50 border border-gray-300 px-3 py-2 text-right font-bold w-20">Quantity</th>
+                                <th className="bg-gray-50 border border-gray-300 px-3 py-2 text-right font-bold w-16">Qty</th>
                                 <th className="bg-gray-50 border border-gray-300 px-3 py-2 text-center font-bold w-14">Unit</th>
                                 <th className="bg-gray-50 border border-gray-300 px-3 py-2 text-right font-bold w-20">Rate</th>
                                 <th className="bg-gray-50 border border-gray-300 px-3 py-2 text-right font-bold w-28">Amount</th>

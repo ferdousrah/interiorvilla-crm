@@ -26,7 +26,7 @@
 
         /* PDF overrides — flatten the card, repeat letterhead header/footer per page */
         @if($isPdf ?? false)
-        @page { margin: 34mm 10mm 24mm 10mm; }       /* top right bottom left — leave room for fixed header/footer */
+        @page { margin: 34mm 7mm 24mm 7mm; }       /* top right bottom left — leave room for fixed header/footer */
         body { background: #fff; font-size: 12.5px; line-height: 1.45; }
         .wrap { max-width: 100%; padding: 0; margin: 0; }
         .sheet { box-shadow: none; border-radius: 0; padding: 0; }
@@ -233,6 +233,14 @@
         }
         .btn-primary { background: #4f46e5; color: #fff; }
         .btn-outline { border-color: #d1d5db; color: #374151; background: #fff; }
+
+        @if($isPdf ?? false)
+        /* PDF only: compact fixed columns so Description keeps maximum width */
+        .boq thead th { padding: 8px 5px; }
+        .boq td { padding: 7px 5px; }
+        .boq td.num { font-size: 12px; }
+        .boq tr.item-row td.desc { padding-left: 8px; padding-right: 8px; }
+        @endif
 
         @media print {
             body { background: #fff; font-size: 12.5px; }

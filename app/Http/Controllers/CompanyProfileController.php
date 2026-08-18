@@ -40,10 +40,20 @@ class CompanyProfileController extends Controller
         ['name' => 'Renovation & Turnkey Execution',       'description' => 'Supervision and implementation from demolition to handover — one contract, zero chaos.'],
     ];
 
+    /** Setting key for a variant's cover photo ('full', 'residential', 'commercial'). */
+    private function coverKey(string $variant): string
+    {
+        return $variant === 'full' ? 'profile_cover_photo' : 'profile_cover_photo_' . $variant;
+    }
+
     public function index(): Response
     {
-        $ceoPhoto   = Setting::get('profile_ceo_photo');
-        $coverPhoto = Setting::get('profile_cover_photo');
+        $ceoPhoto = Setting::get('profile_ceo_photo');
+        $coverPhotos = [];
+        foreach (['full', 'residential', 'commercial'] as $variant) {
+            $path = Setting::get($this->coverKey($variant));
+            $coverPhotos[$variant] = $path ? asset('storage/' . $path) : null;
+        }
 
         return Inertia::render('Settings/CompanyProfile', [
             'content'  => $this->content(),
@@ -55,7 +65,7 @@ class CompanyProfileController extends Controller
                 'title' => Setting::get('company_ceo_title', 'CEO'),
                 'photo' => $ceoPhoto ? asset('storage/' . $ceoPhoto) : null,
             ],
-            'coverPhoto' => $coverPhoto ? asset('storage/' . $coverPhoto) : null,
+            'coverPhotos' => $coverPhotos,
         ]);
     }
 
@@ -183,7 +193,8 @@ class CompanyProfileController extends Controller
             'companyPhone2'  => Setting::get('company_phone2'),
             'companyAddress' => Setting::get('company_address'),
             'companyLogo'    => $resolveImage(Setting::get('company_logo')),
-            'coverPhoto'     => $resolveImage(Setting::get('profile_cover_photo')),
+            'coverPhoto'     => $resolveImage(Setting::get($this->coverKey($category ?? 'full')))
+                                ?: $resolveImage(Setting::get('profile_cover_photo')),
             'website'        => $website,
             'websiteQr'      => $this->qrDataUri($websiteUrl),
             'ceoName'        => Setting::get('company_ceo_name'),
@@ -201,27 +212,34 @@ class CompanyProfileController extends Controller
     public function uploadCoverPhoto(Request $request): RedirectResponse
     {
         $request->validate([
-            'photo' => 'required|image|mimes:png,jpg,jpeg,webp|max:6144',
+            'photo'   => 'required|image|mimes:png,jpg,jpeg,webp|max:6144',
+            'variant' => 'required|in:full,residential,commercial',
         ]);
+        $key = $this->coverKey($request->input('variant'));
 
-        $old = Setting::get('profile_cover_photo');
+        $old = Setting::get($key);
         if ($old && Storage::disk('public')->exists($old)) {
             Storage::disk('public')->delete($old);
         }
 
         $path = $request->file('photo')->store('profile', 'public');
-        Setting::set('profile_cover_photo', $path);
+        Setting::set($key, $path);
 
         return back()->with('success', 'Cover photo updated.');
     }
 
-    public function removeCoverPhoto(): RedirectResponse
+    public function removeCoverPhoto(Request $request): RedirectResponse
     {
-        $old = Setting::get('profile_cover_photo');
+        $request->validate([
+            'variant' => 'required|in:full,residential,commercial',
+        ]);
+        $key = $this->coverKey($request->input('variant'));
+
+        $old = Setting::get($key);
         if ($old && Storage::disk('public')->exists($old)) {
             Storage::disk('public')->delete($old);
         }
-        Setting::set('profile_cover_photo', '');
+        Setting::set($key, '');
 
         return back()->with('success', 'Cover photo removed.');
     }

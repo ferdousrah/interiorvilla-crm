@@ -18,17 +18,17 @@ const emptyProject = {
     description: '', is_featured: false, sort_order: 0,
 };
 
-export default function CompanyProfile({ content, stats, services, projects, ceo, coverPhoto }) {
+export default function CompanyProfile({ content, stats, services, projects, ceo, coverPhotos }) {
     /* ── Content / stats / services form ───────── */
     const form = useForm({ content, stats, services, ceo_name: ceo?.name ?? '', ceo_title: ceo?.title ?? 'CEO' });
 
-    function uploadCoverPhoto(file) {
+    function uploadCoverPhoto(variant, file) {
         if (!file) return;
-        router.post(route('settings.company-profile.cover-photo'), { photo: file }, { forceFormData: true, preserveScroll: true });
+        router.post(route('settings.company-profile.cover-photo'), { photo: file, variant }, { forceFormData: true, preserveScroll: true });
     }
-    function removeCoverPhoto() {
-        if (confirm('Remove the cover photo?')) {
-            router.delete(route('settings.company-profile.cover-photo.remove'), { preserveScroll: true });
+    function removeCoverPhoto(variant) {
+        if (confirm('Remove this cover photo?')) {
+            router.delete(route('settings.company-profile.cover-photo.remove'), { data: { variant }, preserveScroll: true });
         }
     }
 
@@ -187,24 +187,33 @@ export default function CompanyProfile({ content, stats, services, projects, ceo
                             <input type="text" className="form-input" value={form.data.content.profile_closing}
                                 onChange={e => setContentField('profile_closing', e.target.value)} />
                         </FormField>
-                        <FormField label="Cover photo"
-                            hint="Large landscape photo shown on the cover page. If empty, the featured portfolio project's photo is used.">
-                            <div className="flex items-end gap-3">
-                                <div className="w-64 h-32 rounded-lg bg-gray-100 border border-gray-200 overflow-hidden flex items-center justify-center">
-                                    {coverPhoto
-                                        ? <img src={coverPhoto} alt="Cover" className="w-full h-full object-cover" />
-                                        : <PhotoIcon className="w-8 h-8 text-gray-300" />}
-                                </div>
-                                <div className="flex flex-col gap-2">
-                                    <label className="btn btn-secondary text-xs cursor-pointer text-center">
-                                        {coverPhoto ? 'Change' : 'Upload'}
-                                        <input type="file" accept="image/png,image/jpeg,image/webp" className="hidden"
-                                            onChange={e => { uploadCoverPhoto(e.target.files[0]); e.target.value = ''; }} />
-                                    </label>
-                                    {coverPhoto && (
-                                        <button type="button" onClick={removeCoverPhoto} className="text-xs text-red-500 hover:underline">Remove</button>
-                                    )}
-                                </div>
+                        <FormField label="Cover photos"
+                            hint="One per PDF variant. Residential/Commercial fall back to the Full Profile photo, then to the featured project's photo.">
+                            <div className="grid sm:grid-cols-3 gap-4">
+                                {[
+                                    { variant: 'full', label: 'Full Profile' },
+                                    { variant: 'residential', label: 'Residential' },
+                                    { variant: 'commercial', label: 'Commercial' },
+                                ].map(({ variant, label }) => (
+                                    <div key={variant}>
+                                        <p className="text-xs font-medium text-gray-600 mb-1.5">{label}</p>
+                                        <div className="h-28 rounded-lg bg-gray-100 border border-gray-200 overflow-hidden flex items-center justify-center">
+                                            {coverPhotos?.[variant]
+                                                ? <img src={coverPhotos[variant]} alt={`${label} cover`} className="w-full h-full object-cover" />
+                                                : <PhotoIcon className="w-8 h-8 text-gray-300" />}
+                                        </div>
+                                        <div className="flex items-center gap-2 mt-2">
+                                            <label className="btn btn-secondary text-xs cursor-pointer">
+                                                {coverPhotos?.[variant] ? 'Change' : 'Upload'}
+                                                <input type="file" accept="image/png,image/jpeg,image/webp" className="hidden"
+                                                    onChange={e => { uploadCoverPhoto(variant, e.target.files[0]); e.target.value = ''; }} />
+                                            </label>
+                                            {coverPhotos?.[variant] && (
+                                                <button type="button" onClick={() => removeCoverPhoto(variant)} className="text-xs text-red-500 hover:underline">Remove</button>
+                                            )}
+                                        </div>
+                                    </div>
+                                ))}
                             </div>
                         </FormField>
                         <p className="text-xs text-gray-400">Company name, logo, phone, email and address come from Settings → General.</p>
@@ -361,7 +370,7 @@ export default function CompanyProfile({ content, stats, services, projects, ceo
 
             {/* ── Project modal ─────────────────── */}
             <Modal open={modal.open} onClose={closeProject} size="lg" title={modal.project ? 'Edit Project' : 'Add Portfolio Project'}>
-                <form onSubmit={submitProject} className="space-y-4">
+                <form onSubmit={submitProject} className="p-6 space-y-4">
                     <div className="grid sm:grid-cols-2 gap-4">
                         <FormField label="Title" required error={projectErrors.title}>
                             <input type="text" className="form-input" value={projectData.title}

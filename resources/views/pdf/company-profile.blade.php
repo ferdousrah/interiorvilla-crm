@@ -259,7 +259,13 @@
             <tr>
                 <td>
                     <div class="overline">Featured Project</div>
-                    <div class="display" style="font-size: 29px; color: #111827; margin-top: 10px;">{{ $featured->title }}</div>
+                    <div class="display" style="font-size: 29px; margin-top: 10px;">
+                        @if($featured->website_url)
+                            <a href="{{ $featured->website_url }}" style="color: #111827; text-decoration: none;">{{ $featured->title }}</a>
+                        @else
+                            <span style="color: #111827;">{{ $featured->title }}</span>
+                        @endif
+                    </div>
                 </td>
                 <td class="display" style="font-size: 19px; color: #d1d5db; text-align: right; vertical-align: bottom;">{{ $featured->year }}</td>
             </tr>
@@ -288,6 +294,11 @@
 
         @if($featured->description)
             <div style="font-size: 13.5px; line-height: 1.7; color: #4b5563; margin-top: 20px; text-align: justify;">{{ $featured->description }}</div>
+        @endif
+        @if($featured->website_url)
+            <div style="font-size: 12.5px; margin-top: 10px;">
+                <a href="{{ $featured->website_url }}" style="color: #059669; text-decoration: none; font-weight: bold; letter-spacing: 0.5px;">View this project with full gallery &rarr;</a>
+            </div>
         @endif
 
         @php $thumbs = array_slice($featuredPhotos, 1, 3); @endphp
@@ -336,7 +347,13 @@
                             @else
                                 <table class="w-full" style="height: 220px;"><tr><td class="photo-ph"><span>PROJECT PHOTO</span></td></tr></table>
                             @endif
-                            <div style="font-size: 15.5px; font-weight: bold; color: #111827; margin-top: 10px;">{{ $project->title }}</div>
+                            <div style="font-size: 15.5px; font-weight: bold; margin-top: 10px;">
+                                @if($project->website_url)
+                                    <a href="{{ $project->website_url }}" style="color: #111827; text-decoration: none;">{{ $project->title }}</a>
+                                @else
+                                    <span style="color: #111827;">{{ $project->title }}</span>
+                                @endif
+                            </div>
                             <div style="font-size: 11.5px; letter-spacing: 1px; color: #6b7280; margin-top: 3px;">
                                 {{ strtoupper($project->type) }}@if($project->area_sqft) &middot; {{ number_format((float) $project->area_sqft) }} SFT @endif @if($project->year) &middot; {{ $project->year }} @endif
                             </div>
@@ -346,6 +363,13 @@
                 </tr>
             @endforeach
         </table>
+
+        @if($portfolioUrl)
+            <div style="font-size: 13px; text-align: center; margin-top: 24px;">
+                <span style="color: #6b7280;">See all projects with full galleries &mdash;</span>
+                <a href="{{ $portfolioUrl }}" style="color: #059669; text-decoration: none; font-weight: bold;">{{ preg_replace('~^https?://~i', '', $portfolioUrl) }}</a>
+            </div>
+        @endif
     </div>
     <div class="page-foot"><table class="w-full"><tr><td>{{ $website }}</td><td class="num">{{ sprintf('%02d', $pageNo) }}</td></tr></table></div>
 </div>

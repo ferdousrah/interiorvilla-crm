@@ -13,7 +13,7 @@ class PortfolioProject extends Model
 
     protected $fillable = [
         'title', 'type', 'location', 'area_sqft', 'year',
-        'description', 'photos', 'is_featured', 'sort_order',
+        'description', 'photos', 'website_url', 'is_featured', 'sort_order',
     ];
 
     protected function casts(): array

@@ -1,0 +1,23 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+/** Link each portfolio project to its details page on the public website. */
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::table('portfolio_projects', function (Blueprint $table) {
+            $table->string('website_url', 500)->nullable()->after('photos');
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::table('portfolio_projects', function (Blueprint $table) {
+            $table->dropColumn('website_url');
+        });
+    }
+};

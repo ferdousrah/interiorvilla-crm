@@ -15,7 +15,7 @@ const PROJECT_TYPES = ['residential', 'commercial', 'office', 'showroom', 'resta
 
 const emptyProject = {
     title: '', type: 'residential', location: '', area_sqft: '', year: '',
-    description: '', is_featured: false, sort_order: 0,
+    description: '', website_url: '', is_featured: false, sort_order: 0,
 };
 
 export default function CompanyProfile({ content, stats, services, projects, ceo, coverPhotos, clients }) {
@@ -97,6 +97,7 @@ export default function CompanyProfile({ content, stats, services, projects, ceo
             title: project.title ?? '', type: project.type ?? 'residential',
             location: project.location ?? '', area_sqft: project.area_sqft ?? '',
             year: project.year ?? '', description: project.description ?? '',
+            website_url: project.website_url ?? '',
             is_featured: !!project.is_featured, sort_order: project.sort_order ?? 0,
         } : emptyProject);
         setKeptPhotos(project?.photos ?? []);
@@ -203,10 +204,17 @@ export default function CompanyProfile({ content, stats, services, projects, ceo
                                     onChange={e => setContentField('profile_promise', e.target.value)} />
                             </FormField>
                         </div>
-                        <FormField label="Back-cover closing line" error={form.errors['content.profile_closing']}>
-                            <input type="text" className="form-input" value={form.data.content.profile_closing}
-                                onChange={e => setContentField('profile_closing', e.target.value)} />
-                        </FormField>
+                        <div className="grid sm:grid-cols-2 gap-4">
+                            <FormField label="Back-cover closing line" error={form.errors['content.profile_closing']}>
+                                <input type="text" className="form-input" value={form.data.content.profile_closing}
+                                    onChange={e => setContentField('profile_closing', e.target.value)} />
+                            </FormField>
+                            <FormField label="Website portfolio page URL" error={form.errors['content.profile_portfolio_url']}
+                                hint='Shown as "See all projects" link on the PDF portfolio pages'>
+                                <input type="text" className="form-input" value={form.data.content.profile_portfolio_url ?? ''}
+                                    onChange={e => setContentField('profile_portfolio_url', e.target.value)} />
+                            </FormField>
+                        </div>
                         <FormField label="Cover photos"
                             hint="One per PDF variant. Residential/Commercial fall back to the Full Profile photo, then to the featured project's photo.">
                             <div className="grid sm:grid-cols-3 gap-4">
@@ -468,6 +476,12 @@ export default function CompanyProfile({ content, stats, services, projects, ceo
                         hint="Shown on the featured page — 2-3 sentences about scope and result">
                         <textarea rows={3} className="form-input" value={projectData.description}
                             onChange={e => setProjectData(d => ({ ...d, description: e.target.value }))} />
+                    </FormField>
+
+                    <FormField label="Website URL" error={projectErrors.website_url}
+                        hint="This project's details page on your website — the project title in the PDF becomes a clickable link">
+                        <input type="text" placeholder="www.interiorvillabd.com/portfolio/project-name" className="form-input" value={projectData.website_url}
+                            onChange={e => setProjectData(d => ({ ...d, website_url: e.target.value }))} />
                     </FormField>
 
                     <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">

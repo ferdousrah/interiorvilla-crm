@@ -22,6 +22,7 @@ class CompanyProfileController extends Controller
         'profile_mission'  => 'To make thoughtfully designed, honestly built interiors accessible to every home and business in Bangladesh.',
         'profile_promise'  => 'Transparent estimates, materials we stand behind, and a handover date we keep — on every single project.',
         'profile_closing'  => "Tell us about your space — we'll bring the design, the craft and the schedule.",
+        'profile_portfolio_url' => 'https://www.interiorvillabd.com/portfolio',
         'profile_ceo_message' => "When we started Interior Villa, we made one promise to ourselves: every space we touch should feel like it was always meant to be that way.\n\nBehind every project in this profile is a client who trusted us with their home or their business. That trust is what we build with — more than wood, board or paint. Thank you for considering us; we would be honored to build your dream.",
     ];
 
@@ -87,6 +88,7 @@ class CompanyProfileController extends Controller
             'content.profile_promise'  => 'nullable|string|max:1000',
             'content.profile_closing'  => 'nullable|string|max:500',
             'content.profile_ceo_message' => 'nullable|string|max:3000',
+            'content.profile_portfolio_url' => 'nullable|string|max:300',
             'ceo_name'               => 'nullable|string|max:100',
             'ceo_title'              => 'nullable|string|max:50',
             'stats'                  => 'required|array|max:6',
@@ -210,6 +212,7 @@ class CompanyProfileController extends Controller
             'ceoPhoto'       => $resolveImage(Setting::get('profile_ceo_photo')),
             'ceoSignature'   => $resolveImage(Setting::get('company_signature')),
             'profileLabel'   => $category ? ucfirst($category) . ' Profile' : 'Company Profile',
+            'portfolioUrl'   => self::normalizeUrl($this->content()['profile_portfolio_url'] ?? null),
             'profileClients' => ProfileClient::orderBy('sort_order')->orderBy('created_at')->get()
                 ->map(fn ($c) => ['name' => $c->name, 'logo' => $resolveImage($c->logo)]),
         ])->setPaper('a4');
@@ -337,16 +340,29 @@ class CompanyProfileController extends Controller
 
     private function validateProject(Request $request): array
     {
-        return $request->validate([
+        $data = $request->validate([
             'title'       => 'required|string|max:150',
             'type'        => 'required|string|max:50',
             'location'    => 'nullable|string|max:150',
             'area_sqft'   => 'nullable|numeric|min:0',
             'year'        => 'nullable|string|max:10',
             'description' => 'nullable|string|max:2000',
+            'website_url' => 'nullable|string|max:500',
             'is_featured' => 'boolean',
             'sort_order'  => 'nullable|integer',
         ]);
+
+        $data['website_url'] = self::normalizeUrl($data['website_url'] ?? null);
+
+        return $data;
+    }
+
+    /** Prepend https:// when the user pastes a URL without a scheme. */
+    public static function normalizeUrl(?string $url): ?string
+    {
+        $url = trim($url ?? '');
+        if ($url === '') return null;
+        return preg_match('~^https?://~i', $url) ? $url : 'https://' . $url;
     }
 
     /** @return string[] stored paths for newly uploaded photos */

@@ -18,7 +18,27 @@ const emptyProject = {
     description: '', is_featured: false, sort_order: 0,
 };
 
-export default function CompanyProfile({ content, stats, services, projects, ceo, coverPhotos }) {
+export default function CompanyProfile({ content, stats, services, projects, ceo, coverPhotos, clients }) {
+    /* ── Notable clients ───────────────────────── */
+    const [newClient, setNewClient] = useState({ name: '', logo: null });
+    const [addingClient, setAddingClient] = useState(false);
+
+    function addClient() {
+        if (!newClient.name.trim()) return;
+        router.post(route('settings.company-profile.clients.store'), newClient, {
+            forceFormData: true,
+            preserveScroll: true,
+            onStart: () => setAddingClient(true),
+            onFinish: () => setAddingClient(false),
+            onSuccess: () => setNewClient({ name: '', logo: null }),
+        });
+    }
+    function deleteClient(client) {
+        if (confirm(`Remove "${client.name}" from the clients page?`)) {
+            router.delete(route('settings.company-profile.clients.destroy', client.id), { preserveScroll: true });
+        }
+    }
+
     /* ── Content / stats / services form ───────── */
     const form = useForm({ content, stats, services, ceo_name: ceo?.name ?? '', ceo_title: ceo?.title ?? 'CEO' });
 
@@ -362,6 +382,52 @@ export default function CompanyProfile({ content, stats, services, projects, ceo
                                         <span className="text-[10px] text-gray-400 ml-auto">{project.photos?.length ?? 0} photo{(project.photos?.length ?? 0) === 1 ? '' : 's'}</span>
                                     </div>
                                 </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
+                {/* ── Notable clients ─────────────── */}
+                <div className="card p-5">
+                    <div className="mb-4">
+                        <h3 className="font-semibold text-gray-900">Our Clients</h3>
+                        <p className="text-xs text-gray-500 mt-0.5">
+                            Shown on the "Who we've worked with" page of the PDF. Logo is optional — without one, the name appears in a box. The page is skipped if this list is empty.
+                        </p>
+                    </div>
+
+                    <div className="flex flex-wrap items-end gap-3 mb-4">
+                        <div className="w-64">
+                            <input type="text" placeholder="Client / company name" className="form-input text-sm" value={newClient.name}
+                                onChange={e => setNewClient(c => ({ ...c, name: e.target.value }))}
+                                onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addClient(); } }} />
+                        </div>
+                        <label className="btn btn-secondary text-xs cursor-pointer">
+                            {newClient.logo ? newClient.logo.name : 'Logo (optional)'}
+                            <input type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" className="hidden"
+                                onChange={e => { setNewClient(c => ({ ...c, logo: e.target.files[0] ?? null })); e.target.value = ''; }} />
+                        </label>
+                        <button type="button" onClick={addClient} disabled={addingClient || !newClient.name.trim()}
+                            className="btn btn-primary text-sm flex items-center gap-1.5">
+                            <PlusIcon className="w-4 h-4" /> {addingClient ? 'Adding…' : 'Add Client'}
+                        </button>
+                    </div>
+
+                    {(clients ?? []).length === 0 && (
+                        <p className="text-center text-gray-400 py-6 text-sm">No clients added yet.</p>
+                    )}
+                    <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                        {(clients ?? []).map(client => (
+                            <div key={client.id} className="flex items-center gap-3 border border-gray-200 rounded-lg px-3 py-2">
+                                <div className="w-10 h-10 rounded bg-gray-50 border border-gray-100 flex items-center justify-center overflow-hidden shrink-0">
+                                    {client.logo
+                                        ? <img src={client.logo} alt={client.name} className="max-w-full max-h-full object-contain" />
+                                        : <span className="text-sm font-semibold text-gray-400">{client.name.charAt(0)}</span>}
+                                </div>
+                                <p className="text-sm text-gray-800 flex-1 truncate">{client.name}</p>
+                                <button onClick={() => deleteClient(client)} className="p-1 text-gray-300 hover:text-red-500 rounded">
+                                    <TrashIcon className="w-4 h-4" />
+                                </button>
                             </div>
                         ))}
                     </div>

@@ -118,12 +118,18 @@
 
         <table class="w-full" style="margin-top: 30px;">
             <tr>
-                <td style="width: 235px; vertical-align: top; padding-right: 30px;">
-                    @if($ceoPhoto)
-                        <img src="{{ $ceoPhoto }}" style="width: 235px; height: 290px;">
-                    @else
-                        <table style="width: 235px; height: 290px;"><tr><td class="photo-ph"><span>CEO PHOTO</span></td></tr></table>
-                    @endif
+                <td style="width: 270px; vertical-align: top; padding-right: 24px;">
+                    {{-- Framed portrait: offset tinted backdrop, thin border, emerald corner + orange accent --}}
+                    <div style="position: relative; width: 249px; height: 304px; margin-left: 10px;">
+                        <div style="position: absolute; top: 14px; left: 4px; width: 235px; height: 290px; background: #e8efe9; border: 1px solid #d9e5dc;"></div>
+                        @if($ceoPhoto)
+                            <img src="{{ $ceoPhoto }}" style="position: absolute; top: 0; left: 14px; width: 235px; height: 290px; border: 1px solid #d1d5db;">
+                        @else
+                            <table style="position: absolute; top: 0; left: 14px; width: 235px; height: 290px; border: 1px solid #d1d5db;"><tr><td class="photo-ph"><span>CEO PHOTO</span></td></tr></table>
+                        @endif
+                        <div style="position: absolute; bottom: 4px; left: -6px; width: 58px; height: 58px; border-left: 3px solid #059669; border-bottom: 3px solid #059669;"></div>
+                        <div style="position: absolute; top: -7px; right: -7px; width: 14px; height: 14px; background: #e2571b;"></div>
+                    </div>
                 </td>
                 <td style="vertical-align: top;">
                     <div class="display" style="font-size: 40px; line-height: 1; color: #059669;">&ldquo;</div>
@@ -134,7 +140,7 @@
             </tr>
         </table>
 
-        <div style="margin-top: 34px; padding-left: 265px;">
+        <div style="margin-top: 34px; padding-left: 294px;">
             <div style="width: 34px; height: 2px; background: #059669;"></div>
             @if($ceoSignature)
                 <img src="{{ $ceoSignature }}" style="max-height: 56px; margin-top: 14px;">
@@ -344,6 +350,54 @@
     <div class="page-foot"><table class="w-full"><tr><td>{{ $website }}</td><td class="num">{{ sprintf('%02d', $pageNo) }}</td></tr></table></div>
 </div>
 @endforeach
+
+{{-- ================= OUR CLIENTS ================= --}}
+@if(count($profileClients))
+@php $pageNo++; @endphp
+<div class="page">
+    <div class="pad">
+        <table class="hdr-table">
+            <tr>
+                <td style="width: 40px;">@if($companyLogo)<img src="{{ $companyLogo }}" style="width: 30px;">@endif</td>
+                <td class="hdr-brand">{{ strtoupper($companyName) }}</td>
+                <td class="hdr-label">COMPANY PROFILE</td>
+            </tr>
+        </table>
+
+        <div style="margin-top: 40px;">
+            <div class="overline">Our Clients</div>
+            <div class="section-title">Who we've worked with</div>
+        </div>
+
+        <table class="w-full" style="margin-top: 26px;">
+            @foreach(collect($profileClients)->chunk(4) as $row)
+                <tr>
+                    @foreach($row as $client)
+                        <td style="width: 25%; padding: 7px;">
+                            <table style="width: 100%; height: 104px; border: 1px solid #e5e7eb;">
+                                <tr>
+                                    <td style="text-align: center; vertical-align: middle; padding: 10px 8px;">
+                                        @if($client['logo'])
+                                            <img src="{{ $client['logo'] }}" style="height: 36px;">
+                                            <div style="font-size: 10px; letter-spacing: 1px; color: #6b7280; margin-top: 8px;">{{ strtoupper($client['name']) }}</div>
+                                        @else
+                                            <div style="font-size: 13px; font-weight: bold; color: #374151; line-height: 1.4;">{{ $client['name'] }}</div>
+                                        @endif
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    @endforeach
+                    @for($i = count($row); $i < 4; $i++)<td style="width: 25%;"></td>@endfor
+                </tr>
+            @endforeach
+        </table>
+
+        <div style="font-size: 13px; color: #6b7280; margin-top: 26px; text-align: center;">&hellip;and many more homes and businesses across Bangladesh.</div>
+    </div>
+    <div class="page-foot"><table class="w-full"><tr><td>{{ $website }}</td><td class="num">{{ sprintf('%02d', $pageNo) }}</td></tr></table></div>
+</div>
+@endif
 
 {{-- ================= BACK COVER · CONTACT ================= --}}
 <div class="page last" style="background: #111827;">

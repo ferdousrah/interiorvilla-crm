@@ -253,6 +253,8 @@ Route::middleware('auth')->group(function () {
             Route::post('company-profile/projects', [CompanyProfileController::class, 'storeProject'])->name('company-profile.projects.store');
             Route::put('company-profile/projects/{portfolioProject}', [CompanyProfileController::class, 'updateProject'])->name('company-profile.projects.update');
             Route::delete('company-profile/projects/{portfolioProject}', [CompanyProfileController::class, 'destroyProject'])->name('company-profile.projects.destroy');
+            Route::post('company-profile/clients', [CompanyProfileController::class, 'storeClient'])->name('company-profile.clients.store');
+            Route::delete('company-profile/clients/{profileClient}', [CompanyProfileController::class, 'destroyClient'])->name('company-profile.clients.destroy');
             Route::resource('users', UserController::class);
             Route::patch('users/{user}/activate', [UserController::class, 'toggleActive'])->name('users.activate');
             Route::post('users/{user}/reset-password', [UserController::class, 'resetPassword'])->name('users.reset-password');

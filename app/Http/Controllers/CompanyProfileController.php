@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\PortfolioProject;
+use App\Models\ProfileClient;
 use App\Models\Setting;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\RedirectResponse;
@@ -66,6 +67,12 @@ class CompanyProfileController extends Controller
                 'photo' => $ceoPhoto ? asset('storage/' . $ceoPhoto) : null,
             ],
             'coverPhotos' => $coverPhotos,
+            'clients'  => ProfileClient::orderBy('sort_order')->orderBy('created_at')->get()
+                ->map(fn ($c) => [
+                    'id'   => $c->id,
+                    'name' => $c->name,
+                    'logo' => $c->logo ? asset('storage/' . $c->logo) : null,
+                ]),
         ]);
     }
 
@@ -203,10 +210,37 @@ class CompanyProfileController extends Controller
             'ceoPhoto'       => $resolveImage(Setting::get('profile_ceo_photo')),
             'ceoSignature'   => $resolveImage(Setting::get('company_signature')),
             'profileLabel'   => $category ? ucfirst($category) . ' Profile' : 'Company Profile',
+            'profileClients' => ProfileClient::orderBy('sort_order')->orderBy('created_at')->get()
+                ->map(fn ($c) => ['name' => $c->name, 'logo' => $resolveImage($c->logo)]),
         ])->setPaper('a4');
 
         $suffix = $category ? '-' . ucfirst($category) : '';
         return $pdf->download('Company-Profile' . $suffix . '-' . now()->format('Y') . '.pdf');
+    }
+
+    public function storeClient(Request $request): RedirectResponse
+    {
+        $data = $request->validate([
+            'name' => 'required|string|max:150',
+            'logo' => 'nullable|image|mimes:png,jpg,jpeg,webp,svg|max:2048',
+        ]);
+
+        ProfileClient::create([
+            'name' => $data['name'],
+            'logo' => $request->hasFile('logo') ? $request->file('logo')->store('profile-clients', 'public') : null,
+        ]);
+
+        return back()->with('success', 'Client added.');
+    }
+
+    public function destroyClient(ProfileClient $profileClient): RedirectResponse
+    {
+        if ($profileClient->logo && Storage::disk('public')->exists($profileClient->logo)) {
+            Storage::disk('public')->delete($profileClient->logo);
+        }
+        $profileClient->delete();
+
+        return back()->with('success', 'Client removed.');
     }
 
     public function uploadCoverPhoto(Request $request): RedirectResponse

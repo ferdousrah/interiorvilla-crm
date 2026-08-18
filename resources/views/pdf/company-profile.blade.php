@@ -77,7 +77,7 @@
                 </tr>
             </table>
             <div class="display" style="font-size: 54px; line-height: 1.15; color: #111827; margin-top: 16px;">{!! nl2br(e($content['profile_headline'])) !!}</div>
-            <div style="font-size: 15px; line-height: 1.6; color: #4b5563; margin-top: 16px; width: 460px;">{{ $content['profile_intro'] }}</div>
+            <div style="font-size: 15px; line-height: 1.6; color: #4b5563; margin-top: 16px; width: 460px; text-align: justify;">{{ $content['profile_intro'] }}</div>
         </div>
     </div>
 
@@ -134,7 +134,7 @@
                 <td style="vertical-align: top;">
                     <div class="display" style="font-size: 40px; line-height: 1; color: #059669;">&ldquo;</div>
                     @foreach($ceoParas as $para)
-                        <div style="font-size: 14px; line-height: 1.8; color: #374151; margin-bottom: 14px;">{{ $para }}</div>
+                        <div style="font-size: 14px; line-height: 1.8; color: #374151; margin-bottom: 14px; text-align: justify;">{{ $para }}</div>
                     @endforeach
                 </td>
             </tr>
@@ -171,7 +171,7 @@
 
         <div style="margin-top: 22px;">
             @foreach($aboutParas as $para)
-                <div style="font-size: 14.5px; line-height: 1.75; color: #374151; margin-bottom: 14px;">{{ $para }}</div>
+                <div style="font-size: 14.5px; line-height: 1.75; color: #374151; margin-bottom: 14px; text-align: justify;">{{ $para }}</div>
             @endforeach
         </div>
 
@@ -193,14 +193,14 @@
                         <td style="width: 22px; padding-right: 10px;"><div style="width: 22px; height: 2px; background: #e2571b;"></div></td>
                         <td style="font-size: 11px; letter-spacing: 3px; color: #111827; font-weight: bold;">OUR MISSION</td>
                     </tr></table>
-                    <div style="font-size: 13.5px; line-height: 1.7; color: #4b5563; margin-top: 8px;">{{ $content['profile_mission'] }}</div>
+                    <div style="font-size: 13.5px; line-height: 1.7; color: #4b5563; margin-top: 8px; text-align: justify;">{{ $content['profile_mission'] }}</div>
                 </td>
                 <td style="width: 50%; padding-left: 20px; vertical-align: top;">
                     <table><tr>
                         <td style="width: 22px; padding-right: 10px;"><div style="width: 22px; height: 2px; background: #e2571b;"></div></td>
                         <td style="font-size: 11px; letter-spacing: 3px; color: #111827; font-weight: bold;">OUR PROMISE</td>
                     </tr></table>
-                    <div style="font-size: 13.5px; line-height: 1.7; color: #4b5563; margin-top: 8px;">{{ $content['profile_promise'] }}</div>
+                    <div style="font-size: 13.5px; line-height: 1.7; color: #4b5563; margin-top: 8px; text-align: justify;">{{ $content['profile_promise'] }}</div>
                 </td>
             </tr>
         </table>
@@ -232,7 +232,7 @@
                     <td style="padding: 20px 0; vertical-align: top; {{ $i > 0 ? 'border-top: 1px solid #e5e7eb;' : '' }}">
                         <div style="font-size: 16px; font-weight: bold; color: #111827;">{{ $service['name'] }}</div>
                         @if(!empty($service['description']))
-                            <div style="font-size: 13.5px; line-height: 1.6; color: #6b7280; margin-top: 4px;">{{ $service['description'] }}</div>
+                            <div style="font-size: 13.5px; line-height: 1.6; color: #6b7280; margin-top: 4px; text-align: justify;">{{ $service['description'] }}</div>
                         @endif
                     </td>
                 </tr>
@@ -287,7 +287,7 @@
         </div>
 
         @if($featured->description)
-            <div style="font-size: 13.5px; line-height: 1.7; color: #4b5563; margin-top: 20px;">{{ $featured->description }}</div>
+            <div style="font-size: 13.5px; line-height: 1.7; color: #4b5563; margin-top: 20px; text-align: justify;">{{ $featured->description }}</div>
         @endif
 
         @php $thumbs = array_slice($featuredPhotos, 1, 3); @endphp

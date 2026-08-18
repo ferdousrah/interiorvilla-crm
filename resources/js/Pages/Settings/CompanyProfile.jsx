@@ -17,9 +17,19 @@ const emptyProject = {
     description: '', is_featured: false, sort_order: 0,
 };
 
-export default function CompanyProfile({ content, stats, services, projects, ceo }) {
+export default function CompanyProfile({ content, stats, services, projects, ceo, coverPhoto }) {
     /* ── Content / stats / services form ───────── */
     const form = useForm({ content, stats, services, ceo_name: ceo?.name ?? '', ceo_title: ceo?.title ?? 'CEO' });
+
+    function uploadCoverPhoto(file) {
+        if (!file) return;
+        router.post(route('settings.company-profile.cover-photo'), { photo: file }, { forceFormData: true, preserveScroll: true });
+    }
+    function removeCoverPhoto() {
+        if (confirm('Remove the cover photo?')) {
+            router.delete(route('settings.company-profile.cover-photo.remove'), { preserveScroll: true });
+        }
+    }
 
     function uploadCeoPhoto(file) {
         if (!file) return;
@@ -157,6 +167,26 @@ export default function CompanyProfile({ content, stats, services, projects, ceo
                         <FormField label="Back-cover closing line" error={form.errors['content.profile_closing']}>
                             <input type="text" className="form-input" value={form.data.content.profile_closing}
                                 onChange={e => setContentField('profile_closing', e.target.value)} />
+                        </FormField>
+                        <FormField label="Cover photo"
+                            hint="Large landscape photo shown on the cover page. If empty, the featured portfolio project's photo is used.">
+                            <div className="flex items-end gap-3">
+                                <div className="w-64 h-32 rounded-lg bg-gray-100 border border-gray-200 overflow-hidden flex items-center justify-center">
+                                    {coverPhoto
+                                        ? <img src={coverPhoto} alt="Cover" className="w-full h-full object-cover" />
+                                        : <PhotoIcon className="w-8 h-8 text-gray-300" />}
+                                </div>
+                                <div className="flex flex-col gap-2">
+                                    <label className="btn btn-secondary text-xs cursor-pointer text-center">
+                                        {coverPhoto ? 'Change' : 'Upload'}
+                                        <input type="file" accept="image/png,image/jpeg,image/webp" className="hidden"
+                                            onChange={e => { uploadCoverPhoto(e.target.files[0]); e.target.value = ''; }} />
+                                    </label>
+                                    {coverPhoto && (
+                                        <button type="button" onClick={removeCoverPhoto} className="text-xs text-red-500 hover:underline">Remove</button>
+                                    )}
+                                </div>
+                            </div>
                         </FormField>
                         <p className="text-xs text-gray-400">Company name, logo, phone, email and address come from Settings → General.</p>
                     </div>

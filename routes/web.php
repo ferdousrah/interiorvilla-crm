@@ -246,6 +246,8 @@ Route::middleware('auth')->group(function () {
             Route::get('company-profile', [CompanyProfileController::class, 'index'])->name('company-profile');
             Route::put('company-profile', [CompanyProfileController::class, 'update'])->name('company-profile.update');
             Route::get('company-profile/pdf', [CompanyProfileController::class, 'pdf'])->name('company-profile.pdf');
+            Route::post('company-profile/cover-photo', [CompanyProfileController::class, 'uploadCoverPhoto'])->name('company-profile.cover-photo');
+            Route::delete('company-profile/cover-photo', [CompanyProfileController::class, 'removeCoverPhoto'])->name('company-profile.cover-photo.remove');
             Route::post('company-profile/ceo-photo', [CompanyProfileController::class, 'uploadCeoPhoto'])->name('company-profile.ceo-photo');
             Route::delete('company-profile/ceo-photo', [CompanyProfileController::class, 'removeCeoPhoto'])->name('company-profile.ceo-photo.remove');
             Route::post('company-profile/projects', [CompanyProfileController::class, 'storeProject'])->name('company-profile.projects.store');

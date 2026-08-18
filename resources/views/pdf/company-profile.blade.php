@@ -48,7 +48,7 @@
 @php
     $pageNo = 1;
     $featuredPhotos = $featured ? array_values($featured->photos ?? []) : [];
-    $coverPhoto = $featuredPhotos ? $resolveImage($featuredPhotos[0]) : null;
+    $coverPhoto = $coverPhoto ?: ($featuredPhotos ? $resolveImage($featuredPhotos[0]) : null);
     $aboutParas = preg_split('/\n\s*\n/', trim($content['profile_about'] ?? ''));
     $ceoParas = preg_split('/\n\s*\n/', trim($ceoMessage ?? ''));
     $gridPages = $gridProjects->chunk(4);

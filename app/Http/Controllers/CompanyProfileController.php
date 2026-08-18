@@ -42,7 +42,8 @@ class CompanyProfileController extends Controller
 
     public function index(): Response
     {
-        $ceoPhoto = Setting::get('profile_ceo_photo');
+        $ceoPhoto   = Setting::get('profile_ceo_photo');
+        $coverPhoto = Setting::get('profile_cover_photo');
 
         return Inertia::render('Settings/CompanyProfile', [
             'content'  => $this->content(),
@@ -54,6 +55,7 @@ class CompanyProfileController extends Controller
                 'title' => Setting::get('company_ceo_title', 'CEO'),
                 'photo' => $ceoPhoto ? asset('storage/' . $ceoPhoto) : null,
             ],
+            'coverPhoto' => $coverPhoto ? asset('storage/' . $coverPhoto) : null,
         ]);
     }
 
@@ -167,6 +169,7 @@ class CompanyProfileController extends Controller
             'companyPhone2'  => Setting::get('company_phone2'),
             'companyAddress' => Setting::get('company_address'),
             'companyLogo'    => $resolveImage(Setting::get('company_logo')),
+            'coverPhoto'     => $resolveImage(Setting::get('profile_cover_photo')),
             'website'        => $website,
             'websiteQr'      => $this->qrDataUri($websiteUrl),
             'ceoName'        => Setting::get('company_ceo_name'),
@@ -177,6 +180,34 @@ class CompanyProfileController extends Controller
         ])->setPaper('a4');
 
         return $pdf->download('Company-Profile-' . now()->format('Y') . '.pdf');
+    }
+
+    public function uploadCoverPhoto(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'photo' => 'required|image|mimes:png,jpg,jpeg,webp|max:6144',
+        ]);
+
+        $old = Setting::get('profile_cover_photo');
+        if ($old && Storage::disk('public')->exists($old)) {
+            Storage::disk('public')->delete($old);
+        }
+
+        $path = $request->file('photo')->store('profile', 'public');
+        Setting::set('profile_cover_photo', $path);
+
+        return back()->with('success', 'Cover photo updated.');
+    }
+
+    public function removeCoverPhoto(): RedirectResponse
+    {
+        $old = Setting::get('profile_cover_photo');
+        if ($old && Storage::disk('public')->exists($old)) {
+            Storage::disk('public')->delete($old);
+        }
+        Setting::set('profile_cover_photo', '');
+
+        return back()->with('success', 'Cover photo removed.');
     }
 
     public function uploadCeoPhoto(Request $request): RedirectResponse

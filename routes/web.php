@@ -44,6 +44,7 @@ use App\Http\Controllers\MyTasksController;
 use App\Http\Controllers\ExpenseCategoryController;
 use App\Http\Controllers\MaterialController;
 use App\Http\Controllers\SettingController;
+use App\Http\Controllers\CompanyProfileController;
 use Illuminate\Support\Facades\Route;
 
 // Auth routes (guest)
@@ -242,6 +243,14 @@ Route::middleware('auth')->group(function () {
             Route::post('general/quotation-logo', [SettingController::class, 'uploadQuotationLogo'])->name('general.quotation-logo');
             Route::delete('general/quotation-logo', [SettingController::class, 'removeQuotationLogo'])->name('general.quotation-logo.remove');
             Route::post('general/clear-sample-data', [SettingController::class, 'clearSampleData'])->name('general.clear-sample-data');
+            Route::get('company-profile', [CompanyProfileController::class, 'index'])->name('company-profile');
+            Route::put('company-profile', [CompanyProfileController::class, 'update'])->name('company-profile.update');
+            Route::get('company-profile/pdf', [CompanyProfileController::class, 'pdf'])->name('company-profile.pdf');
+            Route::post('company-profile/ceo-photo', [CompanyProfileController::class, 'uploadCeoPhoto'])->name('company-profile.ceo-photo');
+            Route::delete('company-profile/ceo-photo', [CompanyProfileController::class, 'removeCeoPhoto'])->name('company-profile.ceo-photo.remove');
+            Route::post('company-profile/projects', [CompanyProfileController::class, 'storeProject'])->name('company-profile.projects.store');
+            Route::put('company-profile/projects/{portfolioProject}', [CompanyProfileController::class, 'updateProject'])->name('company-profile.projects.update');
+            Route::delete('company-profile/projects/{portfolioProject}', [CompanyProfileController::class, 'destroyProject'])->name('company-profile.projects.destroy');
             Route::resource('users', UserController::class);
             Route::patch('users/{user}/activate', [UserController::class, 'toggleActive'])->name('users.activate');
             Route::post('users/{user}/reset-password', [UserController::class, 'resetPassword'])->name('users.reset-password');

@@ -95,6 +95,7 @@ const navGroups = [
         name: 'Settings', icon: Cog6ToothIcon, permission: 'manage.users',
         children: [
             { name: 'General', href: '/settings/general' },
+            { name: 'Company Profile', href: '/settings/company-profile' },
             { name: 'Expense Categories', href: '/settings/expense-categories' },
             { name: 'Quotation Templates', href: '/settings/quotation-templates' },
             { name: 'Users', href: '/settings/users' },

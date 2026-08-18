@@ -131,9 +131,20 @@ class CompanyProfileController extends Controller
         return back()->with('success', 'Portfolio project removed.');
     }
 
-    /** Download the company profile as a branded PDF. */
-    public function pdf()
+    /** Project types included in each tailored profile ('other' appears in both). */
+    private const CATEGORY_TYPES = [
+        'residential' => ['residential', 'other'],
+        'commercial'  => ['commercial', 'office', 'showroom', 'restaurant', 'other'],
+    ];
+
+    /** Download the company profile as a branded PDF, optionally tailored per category. */
+    public function pdf(Request $request)
     {
+        $category = $request->query('category');
+        if (!array_key_exists($category ?? '', self::CATEGORY_TYPES)) {
+            $category = null;
+        }
+
         // DomPDF caches custom font metrics (Marcellus) here; missing dir crashes the render.
         if (!is_dir(storage_path('fonts'))) {
             @mkdir(storage_path('fonts'), 0755, true);
@@ -149,6 +160,9 @@ class CompanyProfileController extends Controller
         };
 
         $projects = PortfolioProject::orderByDesc('is_featured')->orderBy('sort_order')->orderBy('created_at')->get();
+        if ($category) {
+            $projects = $projects->filter(fn ($p) => in_array($p->type, self::CATEGORY_TYPES[$category], true))->values();
+        }
         $featured = $projects->firstWhere('is_featured', true);
         $others   = $projects->reject(fn ($p) => $featured && $p->id === $featured->id);
 
@@ -177,9 +191,11 @@ class CompanyProfileController extends Controller
             'ceoMessage'     => $this->content()['profile_ceo_message'] ?? '',
             'ceoPhoto'       => $resolveImage(Setting::get('profile_ceo_photo')),
             'ceoSignature'   => $resolveImage(Setting::get('company_signature')),
+            'profileLabel'   => $category ? ucfirst($category) . ' Profile' : 'Company Profile',
         ])->setPaper('a4');
 
-        return $pdf->download('Company-Profile-' . now()->format('Y') . '.pdf');
+        $suffix = $category ? '-' . ucfirst($category) : '';
+        return $pdf->download('Company-Profile' . $suffix . '-' . now()->format('Y') . '.pdf');
     }
 
     public function uploadCoverPhoto(Request $request): RedirectResponse

@@ -1,12 +1,13 @@
 import { Head, router, useForm } from '@inertiajs/react';
 import { useState } from 'react';
+import { Menu } from '@headlessui/react';
 import AppLayout from '@/Layouts/AppLayout';
 import PageHeader from '@/Components/PageHeader';
 import Modal from '@/Components/Modal';
 import FormField from '@/Components/FormField';
 import {
     PlusIcon, PencilIcon, TrashIcon, ArrowDownTrayIcon,
-    StarIcon, XMarkIcon, PhotoIcon,
+    StarIcon, XMarkIcon, PhotoIcon, ChevronDownIcon,
 } from '@heroicons/react/24/outline';
 import { StarIcon as StarSolidIcon } from '@heroicons/react/24/solid';
 
@@ -127,9 +128,27 @@ export default function CompanyProfile({ content, stats, services, projects, ceo
         <AppLayout>
             <Head title="Company Profile" />
             <PageHeader title="Company Profile" subtitle="Content and portfolio for the profile PDF sent to clients">
-                <a href={route('settings.company-profile.pdf')} className="btn btn-primary flex items-center gap-2 text-sm">
-                    <ArrowDownTrayIcon className="w-4 h-4" /> Download PDF
-                </a>
+                <Menu as="div" className="relative">
+                    <Menu.Button className="btn btn-primary flex items-center gap-2 text-sm">
+                        <ArrowDownTrayIcon className="w-4 h-4" /> Download PDF <ChevronDownIcon className="w-3.5 h-3.5" />
+                    </Menu.Button>
+                    <Menu.Items className="absolute right-0 mt-1 w-52 bg-white rounded-lg shadow-lg border border-gray-100 py-1 z-20 focus:outline-none">
+                        {[
+                            { label: 'Full Profile', params: {} },
+                            { label: 'Residential Only', params: { category: 'residential' } },
+                            { label: 'Commercial Only', params: { category: 'commercial' } },
+                        ].map(opt => (
+                            <Menu.Item key={opt.label}>
+                                {({ active }) => (
+                                    <a href={route('settings.company-profile.pdf', opt.params)}
+                                        className={`block px-4 py-2 text-sm text-gray-700 ${active ? 'bg-gray-50' : ''}`}>
+                                        {opt.label}
+                                    </a>
+                                )}
+                            </Menu.Item>
+                        ))}
+                    </Menu.Items>
+                </Menu>
             </PageHeader>
 
             <div className="p-4 sm:p-6 space-y-6 max-w-5xl">

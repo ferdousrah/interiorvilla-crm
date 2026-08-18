@@ -73,7 +73,7 @@
             <table>
                 <tr>
                     <td style="width: 34px; padding-right: 12px;"><div style="width: 34px; height: 2px; background: #059669;"></div></td>
-                    <td><span class="overline" style="letter-spacing: 5px; font-size: 12px;">Company Profile &middot; {{ now()->format('Y') }}</span></td>
+                    <td><span class="overline" style="letter-spacing: 5px; font-size: 12px;">{{ $profileLabel ?? 'Company Profile' }} &middot; {{ now()->format('Y') }}</span></td>
                 </tr>
             </table>
             <div class="display" style="font-size: 54px; line-height: 1.15; color: #111827; margin-top: 16px;">{!! nl2br(e($content['profile_headline'])) !!}</div>

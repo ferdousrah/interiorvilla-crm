@@ -47,7 +47,7 @@ export default function QuotationShow({ quotation, company = {}, grandTotalInWor
         custom_message: `Dear ${recipientName},\n\nPlease find below our quotation (${quotation.code}) for your review. Feel free to reach out if you have any questions.\n\nBest regards.`,
     });
 
-    const canEdit = ['draft', 'sent', 'under_review'].includes(quotation.status);
+    const canEdit = ['draft', 'sent', 'under_review', 'converted'].includes(quotation.status);
     const actions = STATUS_ACTIONS[quotation.status] ?? [];
     const displayCode = quotation.display_code || quotation.code;
     const hasRevisions = lineage.length > 1;

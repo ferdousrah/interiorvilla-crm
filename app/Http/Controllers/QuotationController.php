@@ -164,15 +164,33 @@ class QuotationController extends Controller
             return redirect()->route('quotations.show', $quotation)
                 ->with('error', 'This is an old revision and cannot be edited. Open the latest revision instead.');
         }
-        if (!in_array($quotation->status, ['draft', 'sent', 'under_review'])) {
+        if (!in_array($quotation->status, ['draft', 'sent', 'under_review', 'converted'])) {
             return redirect()->route('quotations.show', $quotation)
                 ->with('error', 'Only draft or sent quotations can be edited.');
         }
 
         $quotation->load(['items']);
 
+        // For converted quotations: linked records the user may want to auto-sync on save
+        $linked = null;
+        if ($quotation->status === 'converted') {
+            $linked = [
+                'project'  => $quotation->project_id
+                    ? Project::where('id', $quotation->project_id)->first(['id', 'code', 'name'])
+                    : null,
+                'invoices' => \App\Models\Invoice::where('quotation_id', $quotation->id)->get()
+                    ->map(fn ($i) => [
+                        'id'     => $i->id,
+                        'code'   => $i->code,
+                        // Paid or cancelled invoices are never auto-updated
+                        'locked' => $i->status === 'cancelled' || (float) $i->paid_amount > 0 || $i->receipts()->exists(),
+                    ])->values(),
+            ];
+        }
+
         return Inertia::render('Quotations/Edit', [
             'quotation'         => $quotation,
+            'linked'            => $linked,
             'clients'           => Client::orderBy('name')->get(['id', 'name', 'code', 'phone']),
             'leads'             => Lead::whereNotIn('status', ['won', 'lost'])->orderBy('name')->get(['id', 'name', 'phone', 'address']),
             'projects'          => Project::whereNotIn('status', ['completed', 'cancelled'])->orderBy('name')->get(['id', 'name', 'code']),
@@ -215,7 +233,78 @@ class QuotationController extends Controller
             $this->syncItems($quotation, $validated['items']);
         });
 
-        return redirect()->route('quotations.show', $quotation)->with('success', 'Quotation updated.');
+        $message = 'Quotation updated.';
+        if ($quotation->status === 'converted' && $request->boolean('sync_linked')) {
+            $message .= ' ' . $this->syncLinkedRecords($quotation->fresh(['items']));
+        }
+
+        return redirect()->route('quotations.show', $quotation)->with('success', $message);
+    }
+
+    /**
+     * Push a converted quotation's new totals to its linked project and
+     * invoice(s). Only runs when the user explicitly opted in on save.
+     * Returns a human-readable summary for the flash message.
+     */
+    private function syncLinkedRecords(Quotation $quotation): string
+    {
+        $notes = [];
+
+        if ($quotation->project_id) {
+            Project::where('id', $quotation->project_id)
+                ->update(['contract_value' => $quotation->grand_total]);
+            $notes[] = 'project contract value synced';
+        }
+
+        $invoices = \App\Models\Invoice::where('quotation_id', $quotation->id)->get();
+        foreach ($invoices as $invoice) {
+            // Same guard as invoice edit: never touch paid or cancelled invoices.
+            if ($invoice->status === 'cancelled' || (float) $invoice->paid_amount > 0 || $invoice->receipts()->exists()) {
+                $notes[] = "invoice {$invoice->code} skipped (has payments)";
+                continue;
+            }
+
+            DB::transaction(function () use ($invoice, $quotation) {
+                // Copy the quotation's amounts verbatim — both documents share the
+                // same totals formula, so this keeps them exactly in step.
+                $invoice->update([
+                    'subtotal'              => $quotation->subtotal,
+                    'discount_amount'       => $quotation->discount_amount,
+                    'vat_pct'               => $quotation->vat_pct,
+                    'vat_amount'            => $quotation->vat_amount,
+                    'transportation_amount' => $quotation->transportation_amount,
+                    'supervision_pct'       => $quotation->supervision_pct,
+                    'supervision_amount'    => $quotation->supervision_amount,
+                    'grand_total'           => $quotation->grand_total,
+                ]);
+
+                // Rebuild line items from the quotation (same mapping as invoice prefill)
+                $invoice->lineItems()->delete();
+                foreach ($quotation->items as $idx => $item) {
+                    $invoice->lineItems()->create([
+                        'description' => trim(($item->item_name ? $item->item_name . "\n" : '') . ($item->description ?? '')),
+                        'unit'        => $item->unit,
+                        'quantity'    => $item->quantity,
+                        'unit_rate'   => $item->unit_rate,
+                        'total'       => $item->quantity * $item->unit_rate,
+                        'sequence'    => $idx,
+                    ]);
+                }
+
+                // Drop the old journal entry; re-posted below with fresh totals
+                \App\Models\JournalEntry::where('reference_type', 'invoice')
+                    ->where('reference_id', $invoice->id)
+                    ->delete();
+            });
+
+            // Re-post AR + Revenue outside the transaction, same as invoice update
+            app(\App\Services\AccountingService::class)
+                ->postInvoiceCreated($invoice->fresh(['client', 'lead']));
+
+            $notes[] = "invoice {$invoice->code} updated & re-posted to accounts";
+        }
+
+        return $notes ? 'Linked records: ' . implode(', ', $notes) . '.' : '';
     }
 
     private function validateQuotation(Request $request): array

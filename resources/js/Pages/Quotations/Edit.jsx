@@ -24,8 +24,8 @@ function newItem(category = '') {
     return { material_id: '', category, item_name: '', description: '', unit: 'sft', quantity: '', unit_rate: '', _key: Math.random() };
 }
 
-export default function QuotationEdit({ quotation, clients, leads, projects, serviceCategories = {} }) {
-    const { data, setData, put, processing, errors } = useForm({
+export default function QuotationEdit({ quotation, clients, leads, projects, serviceCategories = {}, linked = null }) {
+    const { data, setData, put, processing, errors, transform } = useForm({
         client_id:             quotation.client_id ?? '',
         lead_id:               quotation.lead_id ?? '',
         project_id:            quotation.project_id ?? '',
@@ -158,8 +158,22 @@ export default function QuotationEdit({ quotation, clients, leads, projects, ser
         setCategoryModal({ open: false, value: '' });
     }
 
+    const hasLinked = quotation.status === 'converted'
+        && (linked?.project || (linked?.invoices ?? []).length > 0);
+    const [syncModalOpen, setSyncModalOpen] = useState(false);
+
     function submit(e) {
         e.preventDefault();
+        if (hasLinked) {
+            setSyncModalOpen(true);
+            return;
+        }
+        saveWith(false);
+    }
+
+    function saveWith(syncLinked) {
+        setSyncModalOpen(false);
+        transform(d => ({ ...d, sync_linked: syncLinked }));
         put(route('quotations.update', quotation.id));
     }
 
@@ -443,6 +457,46 @@ export default function QuotationEdit({ quotation, clients, leads, projects, ser
                         </button>
                     </div>
                 </form>
+            </Modal>
+
+            {/* Converted quotation: ask whether to auto-update linked project/invoice */}
+            <Modal open={syncModalOpen} onClose={() => setSyncModalOpen(false)} size="md" title="Update linked records too?">
+                <div className="p-6 space-y-4">
+                    <p className="text-sm text-gray-600">
+                        This quotation has already been converted. Do you want to push the new totals to its linked records as well?
+                    </p>
+                    <ul className="text-sm space-y-1.5">
+                        {linked?.project && (
+                            <li className="flex items-center gap-2 text-gray-800">
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0"></span>
+                                Project <span className="font-medium">{linked.project.code} — {linked.project.name}</span>: contract value will match the new grand total
+                            </li>
+                        )}
+                        {(linked?.invoices ?? []).map(inv => (
+                            <li key={inv.id} className={`flex items-center gap-2 ${inv.locked ? 'text-gray-400' : 'text-gray-800'}`}>
+                                <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${inv.locked ? 'bg-gray-300' : 'bg-emerald-500'}`}></span>
+                                Invoice <span className="font-medium">{inv.code}</span>:
+                                {inv.locked
+                                    ? ' will NOT change — it already has payments recorded'
+                                    : ' line items & totals will be replaced, and accounts (AR + revenue) re-posted'}
+                            </li>
+                        ))}
+                    </ul>
+                    <p className="text-xs text-gray-400">
+                        "Only quotation" saves your changes without touching the linked records.
+                    </p>
+                    <div className="flex justify-end gap-2 pt-2">
+                        <button type="button" onClick={() => setSyncModalOpen(false)} className="btn">
+                            Cancel
+                        </button>
+                        <button type="button" onClick={() => saveWith(false)} disabled={processing} className="btn btn-secondary">
+                            Only Quotation
+                        </button>
+                        <button type="button" onClick={() => saveWith(true)} disabled={processing} className="btn btn-primary">
+                            Update Linked Too
+                        </button>
+                    </div>
+                </div>
             </Modal>
         </AppLayout>
     );

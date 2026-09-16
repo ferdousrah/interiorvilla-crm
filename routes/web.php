@@ -80,6 +80,11 @@ Route::middleware('auth')->group(function () {
     Route::delete('/api/material-units/{unit}', [MaterialController::class, 'destroyUnit'])->name('api.material-units.destroy');
     Route::post('/api/material-categories', [MaterialController::class, 'storeCategory'])->name('api.material-categories.store');
 
+    // Vendor category lookups (managed from the vendor create/edit forms)
+    Route::post('/api/vendor-categories', [VendorController::class, 'storeCategory'])->name('api.vendor-categories.store');
+    Route::patch('/api/vendor-categories/{vendorCategory}', [VendorController::class, 'updateCategory'])->name('api.vendor-categories.update');
+    Route::delete('/api/vendor-categories/{vendorCategory}', [VendorController::class, 'destroyCategory'])->name('api.vendor-categories.destroy');
+
     // Quotation templates API (for Quotation Create "Use Template" picker)
     Route::get('/api/quotation-templates', [QuotationTemplateController::class, 'searchApi'])->name('api.quotation-templates');
 

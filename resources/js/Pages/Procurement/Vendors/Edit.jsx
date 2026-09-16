@@ -1,16 +1,19 @@
 import { Head, useForm } from '@inertiajs/react';
+import { useState } from 'react';
 import AppLayout from '@/Layouts/AppLayout';
 import PageHeader from '@/Components/PageHeader';
 import FormField from '@/Components/FormField';
+import VendorCategoryManager from '@/Components/VendorCategoryManager';
+import { Cog6ToothIcon } from '@heroicons/react/24/outline';
 
-const CATEGORIES = ['furniture', 'fabric', 'lighting', 'flooring', 'paint', 'hardware', 'electrical', 'plumbing', 'contractor', 'other'];
 const TYPES = [
     { value: 'supplier',      label: 'Supplier' },
     { value: 'subcontractor', label: 'Subcontractor' },
     { value: 'both',          label: 'Both' },
 ];
 
-export default function VendorEdit({ vendor }) {
+export default function VendorEdit({ vendor, categories = [] }) {
+    const [catManagerOpen, setCatManagerOpen] = useState(false);
     const { data, setData, put, processing, errors } = useForm({
         name: vendor.name,
         type: vendor.type ?? 'supplier',
@@ -55,9 +58,18 @@ export default function VendorEdit({ vendor }) {
                             <input className="form-input" value={data.contact_person} onChange={e => setData('contact_person', e.target.value)} />
                         </FormField>
                         <FormField label="Category" error={errors.category}>
-                            <select className="form-input" value={data.category} onChange={e => setData('category', e.target.value)}>
-                                {CATEGORIES.map(c => <option key={c} value={c} className="capitalize">{c}</option>)}
-                            </select>
+                            <div className="flex gap-2">
+                                <select className="form-input flex-1" value={data.category} onChange={e => setData('category', e.target.value)}>
+                                    {!categories.some(c => c.name === data.category) && data.category && (
+                                        <option value={data.category} className="capitalize">{data.category}</option>
+                                    )}
+                                    {categories.map(c => <option key={c.id} value={c.name} className="capitalize">{c.name}</option>)}
+                                </select>
+                                <button type="button" onClick={() => setCatManagerOpen(true)}
+                                    className="btn px-2.5" title="Manage categories">
+                                    <Cog6ToothIcon className="w-4 h-4" />
+                                </button>
+                            </div>
                         </FormField>
                         <FormField label="Bank Name" error={errors.bank_name}>
                             <input className="form-input" value={data.bank_name} onChange={e => setData('bank_name', e.target.value)} />
@@ -86,6 +98,7 @@ export default function VendorEdit({ vendor }) {
                     </div>
                 </form>
             </div>
+            <VendorCategoryManager open={catManagerOpen} onClose={() => setCatManagerOpen(false)} categories={categories} />
         </AppLayout>
     );
 }

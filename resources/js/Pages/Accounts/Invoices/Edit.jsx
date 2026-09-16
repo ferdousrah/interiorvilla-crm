@@ -61,6 +61,13 @@ export default function InvoiceEdit({ invoice, clients = [], leads = [], project
             <Head title={`Edit ${invoice.code}`} />
             <PageHeader title={`Edit: ${invoice.code}`} back={route('accounts.invoices.show', invoice.id)} />
             <div className="p-4 sm:p-6 max-w-4xl">
+                {parseFloat(invoice.paid_amount ?? 0) > 0 && (
+                    <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                        This invoice has <strong>{Number(invoice.paid_amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}৳</strong> in
+                        recorded payments. The new total cannot be less than that amount, and the status
+                        (Paid / Partially Paid) will be recalculated automatically from the payments.
+                    </div>
+                )}
                 <form onSubmit={submit} className="space-y-4">
                     <div className="card p-6">
                         <p className="text-xs text-gray-500 mb-4">
@@ -91,8 +98,10 @@ export default function InvoiceEdit({ invoice, clients = [], leads = [], project
                             <FormField label="Due Date" error={errors.due_date} required>
                                 <input type="date" className="form-input" value={data.due_date} onChange={e => setData('due_date', e.target.value)} />
                             </FormField>
-                            <FormField label="Status" error={errors.status} required>
-                                <select className="form-input" value={data.status} onChange={e => setData('status', e.target.value)}>
+                            <FormField label="Status" error={errors.status} required
+                                hint={parseFloat(invoice.paid_amount ?? 0) > 0 ? 'Set automatically from payments' : undefined}>
+                                <select className="form-input" value={data.status} onChange={e => setData('status', e.target.value)}
+                                    disabled={parseFloat(invoice.paid_amount ?? 0) > 0}>
                                     <option value="draft">Draft</option>
                                     <option value="sent">Sent</option>
                                     <option value="cancelled">Cancelled</option>

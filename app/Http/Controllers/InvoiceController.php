@@ -383,14 +383,6 @@ class InvoiceController extends Controller
     {
         $this->authorize('update', $invoice);
 
-        // Edit is only allowed when no payments have been recorded — otherwise
-        // changing totals would diverge from the recorded receipts.
-        abort_if(
-            $invoice->receipts()->exists() || (float) $invoice->paid_amount > 0,
-            403,
-            'Cannot edit: this invoice has payment receipts. Delete the receipts first.'
-        );
-
         $invoice->load(['client', 'lead', 'project', 'lineItems']);
 
         return Inertia::render('Accounts/Invoices/Edit', [
@@ -405,11 +397,6 @@ class InvoiceController extends Controller
     public function update(Request $request, Invoice $invoice): RedirectResponse
     {
         $this->authorize('update', $invoice);
-
-        // Same guard as edit() — no edits once any payment is in the books.
-        if ($invoice->receipts()->exists() || (float) $invoice->paid_amount > 0) {
-            return back()->with('error', 'Cannot edit: this invoice has payment receipts.');
-        }
 
         $incomeSources = config('services_catalog.income_sources', []);
 
@@ -444,20 +431,39 @@ class InvoiceController extends Controller
                 : (!empty($validated['lead_id']) ? 'Visit Charge' : 'Project');
         }
 
-        DB::transaction(function () use ($validated, $invoice) {
-            $subtotal       = (float) collect($validated['items'])->sum(fn($i) => $i['quantity'] * $i['unit_rate']);
-            $discount       = (float) ($validated['discount_amount'] ?? 0);
-            $transportation = (float) ($validated['transportation_amount'] ?? 0);
-            $afterDiscount  = $subtotal - $discount;
+        // Payments already in the books constrain the edit: the new total can
+        // never drop below what the client has paid, and a paid invoice can't
+        // be cancelled from here.
+        $paidAmount  = (float) $invoice->paid_amount;
+        $hasPayments = $paidAmount > 0 || $invoice->receipts()->exists();
 
-            $vatPct         = (float) ($validated['vat_pct'] ?? 0);
-            $vatAmount      = round($afterDiscount * $vatPct / 100, 2);
+        $subtotal       = (float) collect($validated['items'])->sum(fn($i) => $i['quantity'] * $i['unit_rate']);
+        $discount       = (float) ($validated['discount_amount'] ?? 0);
+        $transportation = (float) ($validated['transportation_amount'] ?? 0);
+        $afterDiscount  = $subtotal - $discount;
 
-            $supervisionPct    = (float) ($validated['supervision_pct'] ?? 0);
-            $supervisionAmount = round(($afterDiscount + $transportation) * $supervisionPct / 100, 2);
+        $vatPct         = (float) ($validated['vat_pct'] ?? 0);
+        $vatAmount      = round($afterDiscount * $vatPct / 100, 2);
 
-            $grandTotal     = round($afterDiscount + $transportation + $supervisionAmount + $vatAmount, 2);
+        $supervisionPct    = (float) ($validated['supervision_pct'] ?? 0);
+        $supervisionAmount = round(($afterDiscount + $transportation) * $supervisionPct / 100, 2);
 
+        $grandTotal     = round($afterDiscount + $transportation + $supervisionAmount + $vatAmount, 2);
+
+        if ($hasPayments) {
+            if ($grandTotal < $paidAmount) {
+                return back()->with('error',
+                    'New total (' . number_format($grandTotal, 2) . ') cannot be less than the amount already paid (' . number_format($paidAmount, 2) . ').'
+                )->withInput();
+            }
+            if ($validated['status'] === 'cancelled') {
+                return back()->with('error', 'Cannot cancel an invoice that has payments recorded. Delete the receipts first.')->withInput();
+            }
+            // Status follows the payments, never the form.
+            $validated['status'] = $paidAmount >= $grandTotal ? 'paid' : 'partially_paid';
+        }
+
+        DB::transaction(function () use ($validated, $invoice, $subtotal, $vatAmount, $supervisionAmount, $grandTotal) {
             $invoice->update(array_merge(
                 \Illuminate\Support\Arr::except($validated, ['items']),
                 [

@@ -150,8 +150,8 @@ export default function InvoiceShow({ invoice, accountHeads = [], company = {}, 
                         <BanknotesIcon className="w-4 h-4" /> Record Payment
                     </button>
                 )}
-                {canDelete && (
-                    <Link href={route('accounts.invoices.edit', invoice.id)} className="btn flex items-center gap-2 text-sm" title="Edit this invoice (no payments recorded yet)">
+                {invoice.status !== 'cancelled' && (
+                    <Link href={route('accounts.invoices.edit', invoice.id)} className="btn flex items-center gap-2 text-sm" title="Edit this invoice">
                         <PencilIcon className="w-4 h-4" /> Edit
                     </Link>
                 )}

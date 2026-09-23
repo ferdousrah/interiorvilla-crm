@@ -31,11 +31,23 @@ class VendorPaymentController extends Controller
         return Inertia::render('Accounts/VendorPayments/Index', ['payments' => $payments]);
     }
 
-    public function create(): Response
+    public function create(Request $request): Response
     {
         $this->authorize('create', \App\Models\Invoice::class);
 
+        // "Pay Due" from a purchase: prefill vendor, link and outstanding amount
+        $prefill = null;
+        if ($request->po_id && ($po = PurchaseOrder::withSum('payments', 'amount')->find($request->po_id))) {
+            $prefill = [
+                'vendor_id' => $po->vendor_id,
+                'po_id'     => $po->id,
+                'po_code'   => $po->code,
+                'amount'    => max(round((float) $po->grand_total - (float) $po->payments_sum_amount, 2), 0),
+            ];
+        }
+
         return Inertia::render('Accounts/VendorPayments/Create', [
+            'prefill' => $prefill,
             'vendors' => Vendor::where('is_active', true)->select('id', 'name', 'code')->get(),
             'accountHeads' => AccountHead::whereHas('group', fn($q) => $q->where('type', 'asset'))
                 ->where('is_active', true)->select('id', 'name', 'code')->get(),
@@ -65,6 +77,9 @@ class VendorPaymentController extends Controller
 
         $this->accounting->postVendorPaymentMade($payment->fresh(['vendor']));
 
+        if ($payment->po_id) {
+            return redirect()->route('procurement.purchase-orders.show', $payment->po_id)->with('success', 'Payment recorded.');
+        }
         return redirect()->route('accounts.vendor-payments.index')->with('success', 'Payment recorded.');
     }
 

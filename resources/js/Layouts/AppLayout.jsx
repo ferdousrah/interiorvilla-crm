@@ -52,10 +52,8 @@ const navGroups = [
     {
         name: 'Procurement', icon: ShoppingCartIcon, permission: 'view.procurement',
         children: [
+            { name: 'Purchases', href: '/procurement/purchase-orders' },
             { name: 'Vendors', href: '/procurement/vendors' },
-            { name: 'Requisitions', href: '/procurement/requisitions' },
-            { name: 'Purchase Orders', href: '/procurement/purchase-orders' },
-            { name: 'GRN', href: '/procurement/grn' },
         ],
     },
     {

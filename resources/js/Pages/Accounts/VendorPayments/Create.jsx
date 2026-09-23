@@ -5,11 +5,11 @@ import FormField from '@/Components/FormField';
 
 const PAYMENT_METHODS = ['cash', 'bank_transfer', 'cheque', 'bkash', 'nagad', 'rocket', 'other'];
 
-export default function VendorPaymentCreate({ vendors, accountHeads }) {
+export default function VendorPaymentCreate({ vendors, accountHeads, prefill = null }) {
     const { data, setData, post, processing, errors } = useForm({
-        vendor_id: '',
-        po_id: '',
-        amount: '',
+        vendor_id: prefill?.vendor_id ?? '',
+        po_id: prefill?.po_id ?? '',
+        amount: prefill?.amount ? String(prefill.amount) : '',
         payment_date: new Date().toISOString().substring(0, 10),
         payment_method: 'bank_transfer',
         reference: '',
@@ -28,6 +28,11 @@ export default function VendorPaymentCreate({ vendors, accountHeads }) {
             <PageHeader title="Record Vendor Payment" back={route('accounts.vendor-payments.index')} />
             <div className="p-4 sm:p-6 max-w-2xl mx-auto">
                 <form onSubmit={submit} className="card p-6 space-y-4">
+                    {prefill?.po_code && (
+                        <p className="text-sm text-gray-600 bg-gray-50 border border-gray-100 rounded px-3 py-2">
+                            Paying against purchase <span className="font-mono font-medium text-primary-600">{prefill.po_code}</span>
+                        </p>
+                    )}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <FormField label="Vendor" error={errors.vendor_id} required>
                             <select className="form-input" value={data.vendor_id} onChange={e => setData('vendor_id', e.target.value)}>

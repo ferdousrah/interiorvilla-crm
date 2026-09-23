@@ -262,7 +262,7 @@ class ReportController extends Controller
                 $poLines = $project->purchaseOrders
                     ->whereNotIn('status', ['cancelled'])
                     ->map(fn ($p) => [
-                        'description' => "PO {$p->code}",
+                        'description' => "Purchase {$p->code}",
                         'amount'      => (float) $p->grand_total,
                         'date'        => (string) $p->order_date?->toDateString(),
                     ]);

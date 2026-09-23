@@ -16,6 +16,7 @@ class PurchaseOrder extends Model
 
     protected $fillable = [
         'code', 'vendor_id', 'project_id', 'requisition_id', 'status',
+        'delivery_type', 'warehouse_id',
         'order_date', 'expected_delivery_date', 'delivery_address',
         'subtotal', 'vat_amount', 'other_charges', 'grand_total',
         'notes', 'sent_at', 'created_by',
@@ -62,6 +63,11 @@ class PurchaseOrder extends Model
     public function grns(): HasMany
     {
         return $this->hasMany(GoodsReceiptNote::class, 'po_id');
+    }
+
+    public function warehouse(): BelongsTo
+    {
+        return $this->belongsTo(Warehouse::class);
     }
 
     public function payments(): HasMany

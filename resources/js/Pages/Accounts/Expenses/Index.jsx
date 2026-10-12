@@ -7,8 +7,15 @@ import FormField from '@/Components/FormField';
 import { formatBDT, formatDate } from '@/utils/formatters';
 import {
     PlusIcon, Cog6ToothIcon, ClockIcon, CheckCircleIcon, XCircleIcon,
-    BanknotesIcon, ExclamationTriangleIcon,
+    BanknotesIcon, ExclamationTriangleIcon, PencilIcon, TrashIcon,
 } from '@heroicons/react/24/outline';
+import { usePermissions } from '@/Hooks/usePermissions';
+import dayjs from 'dayjs';
+
+/** Keep the record's current choice selectable even when it is no longer in the active list. */
+function withCurrent(list, current) {
+    return current && !list.some(x => x.id === current.id) ? [current, ...list] : list;
+}
 
 const STATUS_STYLE = {
     pending:  { cls: 'bg-amber-100 text-amber-700',     icon: ClockIcon,       label: 'Pending' },
@@ -40,6 +47,46 @@ export default function Expenses({
     });
 
     const rejectForm = useForm({ rejection_reason: '' });
+
+    const { can, hasRole } = usePermissions();
+    const canEdit = can('create.invoices');
+    const canDelete = hasRole('admin');
+
+    const [editing, setEditing] = useState(null);
+    const editForm = useForm({
+        description: '', expense_category_id: '', account_head_id: '', amount: '',
+        expense_date: '', paid_from: '', project_id: '', reference: '',
+    });
+
+    function openEdit(exp) {
+        editForm.clearErrors();
+        editForm.setData({
+            description: exp.description ?? '',
+            expense_category_id: exp.expense_category_id ?? '',
+            account_head_id: exp.account_head_id ?? '',
+            amount: String(exp.amount ?? ''),
+            expense_date: dayjs(exp.expense_date).format('YYYY-MM-DD'),
+            paid_from: (typeof exp.paid_from === 'string' ? exp.paid_from : exp.paidFrom?.id) ?? '',
+            project_id: exp.project_id ?? '',
+            reference: exp.reference ?? '',
+        });
+        setEditing(exp);
+    }
+
+    function submitEdit(e) {
+        e.preventDefault();
+        editForm.put(route('accounts.expenses.update', editing.id), {
+            preserveScroll: true,
+            onSuccess: () => setEditing(null),
+        });
+    }
+
+    function removeExpense(exp) {
+        const ledger = exp.status === 'approved' ? '\n\nIts ledger entry will be removed too.' : '';
+        if (confirm(`Delete expense ${exp.code} (${formatBDT(exp.amount)})?${ledger}`)) {
+            router.delete(route('accounts.expenses.destroy', exp.id), { preserveScroll: true });
+        }
+    }
 
     function submit(e) {
         e.preventDefault();
@@ -231,11 +278,25 @@ export default function Expenses({
                                                 <Icon className="w-3 h-3" /> {s.label}
                                             </span>
                                         </td>
-                                        <td className="px-4 py-3 text-right">
-                                            {exp.status === 'pending' && (
-                                                <button onClick={() => setReviewing(exp)}
-                                                    className="btn btn-primary text-xs">Review</button>
-                                            )}
+                                        <td className="px-4 py-3">
+                                            <div className="flex items-center justify-end gap-1">
+                                                {exp.status === 'pending' && (
+                                                    <button onClick={() => setReviewing(exp)}
+                                                        className="btn btn-primary text-xs mr-1">Review</button>
+                                                )}
+                                                {canEdit && (
+                                                    <button type="button" onClick={() => openEdit(exp)} title="Edit expense"
+                                                        className="p-1.5 text-gray-400 hover:bg-gray-100 rounded hover:text-primary-600">
+                                                        <PencilIcon className="w-4 h-4" />
+                                                    </button>
+                                                )}
+                                                {canDelete && (
+                                                    <button type="button" onClick={() => removeExpense(exp)} title="Delete expense"
+                                                        className="p-1.5 text-gray-400 hover:bg-gray-100 rounded hover:text-red-500">
+                                                        <TrashIcon className="w-4 h-4" />
+                                                    </button>
+                                                )}
+                                            </div>
                                         </td>
                                     </tr>
                                 );
@@ -247,6 +308,80 @@ export default function Expenses({
                     </table>
                 </div>
             </div>
+
+            {/* Edit modal */}
+            <Modal open={!!editing} onClose={() => setEditing(null)} size="lg"
+                title={editing ? `Edit Expense ${editing.code}` : ''}>
+                {editing && (
+                    <form onSubmit={submitEdit} className="p-6 space-y-4">
+                        {editing.status === 'approved' && (
+                            <p className="text-xs text-gray-600 bg-gray-50 border border-gray-100 rounded px-3 py-2">
+                                This expense is approved — saving re-posts its ledger entry with the new values.
+                            </p>
+                        )}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div className="sm:col-span-2">
+                                <FormField label="Description" error={editForm.errors.description} required>
+                                    <input className="form-input" value={editForm.data.description}
+                                        onChange={e => editForm.setData('description', e.target.value)} />
+                                </FormField>
+                            </div>
+                            <FormField label="Amount (BDT)" error={editForm.errors.amount} required>
+                                <input type="number" step="0.01" min="0.01" className="form-input" value={editForm.data.amount}
+                                    onChange={e => editForm.setData('amount', e.target.value)} />
+                            </FormField>
+                            <FormField label="Date" error={editForm.errors.expense_date} required>
+                                <input type="date" className="form-input" value={editForm.data.expense_date}
+                                    onChange={e => editForm.setData('expense_date', e.target.value)} />
+                            </FormField>
+                            <FormField label="Category" error={editForm.errors.expense_category_id}>
+                                <select className="form-input" value={editForm.data.expense_category_id}
+                                    onChange={e => editForm.setData('expense_category_id', e.target.value)}>
+                                    <option value="">— none —</option>
+                                    {withCurrent(expenseCategories, editing.category).map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                </select>
+                            </FormField>
+                            <FormField label="Account Head" error={editForm.errors.account_head_id} required>
+                                <select className="form-input" value={editForm.data.account_head_id}
+                                    onChange={e => editForm.setData('account_head_id', e.target.value)}>
+                                    <option value="">Select…</option>
+                                    {withCurrent(accountHeads, editing.accountHead ?? editing.account_head).map(h => (
+                                        <option key={h.id} value={h.id}>{h.code} — {h.name}</option>
+                                    ))}
+                                </select>
+                            </FormField>
+                            <FormField label="Paid From" error={editForm.errors.paid_from} required>
+                                <select className="form-input" value={editForm.data.paid_from}
+                                    onChange={e => editForm.setData('paid_from', e.target.value)}>
+                                    <option value="">Select…</option>
+                                    {withCurrent(cashBankHeads, editing.paidFrom).map(h => (
+                                        <option key={h.id} value={h.id}>{h.code} — {h.name}</option>
+                                    ))}
+                                </select>
+                            </FormField>
+                            <FormField label="Project (optional)" error={editForm.errors.project_id}>
+                                <select className="form-input" value={editForm.data.project_id}
+                                    onChange={e => editForm.setData('project_id', e.target.value)}>
+                                    <option value="">— none —</option>
+                                    {withCurrent(projects, editing.project).map(pr => <option key={pr.id} value={pr.id}>{pr.name}</option>)}
+                                </select>
+                            </FormField>
+                            <div className="sm:col-span-2">
+                                <FormField label="Reference" error={editForm.errors.reference}>
+                                    <input className="form-input" value={editForm.data.reference}
+                                        onChange={e => editForm.setData('reference', e.target.value)} />
+                                </FormField>
+                            </div>
+                        </div>
+                        <div className="flex justify-end gap-2 pt-2">
+                            <button type="button" onClick={() => setEditing(null)} className="btn">Cancel</button>
+                            <button type="submit" disabled={editForm.processing} className="btn btn-primary">
+                                {editForm.processing ? 'Saving…' : 'Save Changes'}
+                            </button>
+                        </div>
+                    </form>
+                )}
+            </Modal>
 
             {/* Review modal */}
             <Modal open={!!reviewing} onClose={() => { setReviewing(null); rejectForm.reset(); }}

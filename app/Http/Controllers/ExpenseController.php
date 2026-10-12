@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\AccountHead;
 use App\Models\Expense;
 use App\Models\ExpenseCategory;
+use App\Models\JournalEntry;
 use App\Models\Project;
 use App\Services\AccountingService;
 use App\Services\CodeGeneratorService;
@@ -164,7 +165,57 @@ class ExpenseController extends Controller
         return back()->with('success', "Expense {$expense->code} rejected.");
     }
 
-    public function edit(Expense $expense): Response { abort(403); }
-    public function update(Request $request, Expense $expense): RedirectResponse { abort(403); }
-    public function destroy(Expense $expense): RedirectResponse { abort(403); }
+    /** Expenses are edited in a modal on the list page. */
+    public function edit(Expense $expense): RedirectResponse
+    {
+        return redirect()->route('accounts.expenses.index');
+    }
+
+    /** Correct an expense. An approved expense has its ledger entry re-posted. */
+    public function update(Request $request, Expense $expense): RedirectResponse
+    {
+        $this->authorize('create', \App\Models\Invoice::class);
+
+        $validated = $request->validate([
+            'account_head_id'     => 'required|uuid|exists:account_heads,id',
+            'expense_category_id' => 'nullable|uuid|exists:expense_categories,id',
+            'project_id'          => 'nullable|uuid|exists:projects,id',
+            'amount'              => 'required|numeric|min:0.01',
+            'expense_date'        => 'required|date',
+            'paid_from'           => 'required|uuid|exists:account_heads,id',
+            'description'         => 'required|string|max:250',
+            'reference'           => 'nullable|string|max:150',
+        ]);
+
+        DB::transaction(function () use ($expense, $validated) {
+            $expense->update($validated);
+
+            JournalEntry::where('reference_type', 'expense')
+                ->where('reference_id', $expense->id)
+                ->delete(); // cascades to journal_lines
+        });
+
+        // Only approved expenses live in the ledger; pending/rejected have nothing to re-post.
+        if ($expense->isApproved()) {
+            $this->accounting->postExpenseRecorded($expense->fresh(['accountHead']));
+        }
+
+        return back()->with('success', "Expense {$expense->code} updated.");
+    }
+
+    /** Delete an expense along with its ledger entry. */
+    public function destroy(Expense $expense): RedirectResponse
+    {
+        abort_unless(auth()->user()->hasRole('admin'), 403, 'Only an admin can delete expenses.');
+
+        DB::transaction(function () use ($expense) {
+            JournalEntry::where('reference_type', 'expense')
+                ->where('reference_id', $expense->id)
+                ->delete();
+
+            $expense->delete();
+        });
+
+        return back()->with('success', "Expense {$expense->code} deleted.");
+    }
 }

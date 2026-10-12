@@ -6,6 +6,7 @@ use App\Models\AccountHead;
 use App\Models\Client;
 use App\Models\ClientReceipt;
 use App\Models\Invoice;
+use App\Models\JournalEntry;
 use App\Services\AccountingService;
 use App\Services\CodeGeneratorService;
 use Illuminate\Http\RedirectResponse;
@@ -142,18 +143,94 @@ class ClientReceiptController extends Controller
         return Inertia::render('Accounts/Receipts/Show', ['receipt' => $receipt]);
     }
 
-    public function edit(ClientReceipt $receipt): Response
+    /** Receipts are edited in a modal on the list page. */
+    public function edit(ClientReceipt $receipt): RedirectResponse
     {
-        abort(403, 'Receipts cannot be edited.');
+        return redirect()->route('accounts.receipts.index');
     }
 
+    /**
+     * Correct a receipt. The linked invoice's paid amount and status follow
+     * the new amount, and the ledger entry is re-posted.
+     */
     public function update(Request $request, ClientReceipt $receipt): RedirectResponse
     {
-        abort(403, 'Receipts cannot be edited.');
+        $this->authorize('create', Invoice::class);
+
+        $validated = $request->validate([
+            'amount'          => 'required|numeric|min:0.01',
+            'receipt_date'    => 'required|date',
+            'payment_method'  => 'required|in:cash,bank_transfer,cheque,bkash,nagad,rocket,other',
+            'reference'       => 'nullable|string|max:150',
+            'account_head_id' => 'required|uuid|exists:account_heads,id',
+            'notes'           => 'nullable|string',
+        ]);
+
+        $invoice   = $receipt->invoice_id ? Invoice::find($receipt->invoice_id) : null;
+        $oldAmount = (float) $receipt->amount;
+        $newAmount = round((float) $validated['amount'], 2);
+
+        if ($invoice) {
+            $maxAllowed = round((float) $invoice->grand_total - ((float) $invoice->paid_amount - $oldAmount), 2);
+            if ($newAmount > $maxAllowed) {
+                return back()->withErrors([
+                    'amount' => 'Amount cannot exceed ' . number_format($maxAllowed, 2) . " — the balance of invoice {$invoice->code}.",
+                ]);
+            }
+        }
+
+        DB::transaction(function () use ($receipt, $validated, $invoice, $oldAmount, $newAmount) {
+            $receipt->update($validated);
+
+            if ($invoice) {
+                $this->adjustInvoicePaid($invoice, $newAmount - $oldAmount);
+            }
+
+            JournalEntry::where('reference_type', 'client_receipt')
+                ->where('reference_id', $receipt->id)
+                ->delete(); // cascades to journal_lines
+        });
+
+        $this->accounting->postClientReceiptRecorded($receipt->fresh(['client', 'lead']));
+
+        return back()->with('success', "Receipt {$receipt->code} updated.");
     }
 
+    /** Delete a receipt and reverse it: invoice paid amount/status and the ledger entry. */
     public function destroy(ClientReceipt $receipt): RedirectResponse
     {
-        abort(403, 'Receipts cannot be deleted.');
+        abort_unless(auth()->user()->hasRole('admin'), 403, 'Only an admin can delete receipts.');
+
+        DB::transaction(function () use ($receipt) {
+            JournalEntry::where('reference_type', 'client_receipt')
+                ->where('reference_id', $receipt->id)
+                ->delete();
+
+            $invoice = $receipt->invoice_id ? Invoice::find($receipt->invoice_id) : null;
+            $amount  = (float) $receipt->amount;
+
+            $receipt->delete();
+
+            if ($invoice) {
+                $this->adjustInvoicePaid($invoice, -$amount);
+            }
+        });
+
+        return back()->with('success', "Receipt {$receipt->code} deleted and reversed.");
+    }
+
+    /** Shift an invoice's paid amount by $delta and re-derive its status from what is now paid. */
+    private function adjustInvoicePaid(Invoice $invoice, float $delta): void
+    {
+        $paid = max(round((float) $invoice->paid_amount + $delta, 2), 0);
+
+        $attrs = ['paid_amount' => $paid];
+        if ($invoice->status !== 'cancelled') {
+            $attrs['status'] = $paid >= (float) $invoice->grand_total
+                ? 'paid'
+                : ($paid > 0 ? 'partially_paid' : 'sent');
+        }
+
+        $invoice->update($attrs);
     }
 }

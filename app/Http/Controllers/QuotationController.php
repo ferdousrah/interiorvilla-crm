@@ -124,8 +124,6 @@ class QuotationController extends Controller
         $quotation->load(['client', 'lead', 'project', 'items', 'createdBy']);
 
         $logoPath = Setting::get('quotation_logo') ?: Setting::get('company_logo');
-        $sigPath  = Setting::get('company_signature');
-
         // Sibling revisions (only when this quotation has been revised)
         $lineage = $quotation->lineage()
             ->map(fn($q) => [
@@ -150,8 +148,8 @@ class QuotationController extends Controller
                 'ceo_name'  => Setting::get('company_ceo_name'),
                 'ceo_title' => Setting::get('company_ceo_title', 'CEO'),
                 'logo'      => $logoPath ? asset('storage/' . $logoPath) : null,
-                'signature' => $sigPath  ? asset('storage/' . $sigPath)  : null,
             ],
+            'signer'    => $quotation->signer(fn (?string $path) => $path ? asset('storage/' . $path) : null),
             'grandTotalInWords' => NumberToWords::toBdt((float) $quotation->grand_total),
             'lineage'           => $lineage,
         ]);
@@ -544,7 +542,7 @@ class QuotationController extends Controller
             'companyCeoName'     => Setting::get('company_ceo_name'),
             'companyCeoTitle'    => Setting::get('company_ceo_title', 'CEO'),
             'companyLogo'        => $resolveImage(Setting::get('quotation_logo') ?: Setting::get('company_logo')),
-            'companySignature'   => $resolveImage(Setting::get('company_signature')),
+            'signer'             => $quotation->signer($resolveImage),
             'grandTotalInWords'  => NumberToWords::toBdt((float) $quotation->grand_total),
             'isPdf'              => $isPdf,
         ];

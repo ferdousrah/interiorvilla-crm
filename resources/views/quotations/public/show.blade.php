@@ -467,17 +467,16 @@
             {{-- SIGNATURE --}}
             <div class="sign-block">
                 <div class="thanks">THANKING YOU</div>
-                @if(!empty($companySignature))
-                    <img src="{{ $companySignature }}" alt="Signature" class="signature-img">
+                @if(!empty($signer['signature']))
+                    <img src="{{ $signer['signature'] }}" alt="Signature" class="signature-img">
                 @else
                     <div class="signature-spacer"></div>
                 @endif
-                @if(!empty($companyCeoName))
-                    <div class="name">{{ $companyCeoName }}</div>
-                    <div class="meta">{{ $companyCeoTitle ?: 'CEO' }}</div>
-                @elseif($quotation->createdBy)
-                    <div class="name">{{ $quotation->createdBy->name }}</div>
-                    <div class="meta">{{ $companyCeoTitle ?: 'Prepared By' }}</div>
+                @if(!empty($signer['name']))
+                    <div class="name">{{ $signer['name'] }}</div>
+                    @if(!empty($signer['title']))
+                        <div class="meta">{{ $signer['title'] }}</div>
+                    @endif
                 @endif
                 <div class="company">{{ $companyName ?: 'Interior Villa' }}</div>
                 @if(!empty($companyPhone))

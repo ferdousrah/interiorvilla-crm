@@ -33,7 +33,7 @@ const STATUS_ACTIONS = {
     superseded:   [],
 };
 
-export default function QuotationShow({ quotation, company = {}, grandTotalInWords = '', lineage = [] }) {
+export default function QuotationShow({ quotation, company = {}, signer = null, grandTotalInWords = '', lineage = [] }) {
     const [convertModal, setConvertModal] = useState(false);
     const [emailModal, setEmailModal] = useState(false);
     const [shareBusy, setShareBusy] = useState(false);
@@ -429,15 +429,13 @@ export default function QuotationShow({ quotation, company = {}, grandTotalInWor
                     {/* Sign-off */}
                     <div className="mt-7 text-[14px]">
                         <div className="mb-1.5">THANKING YOU</div>
-                        {company.signature ? (
-                            <img src={company.signature} alt="Signature" className="block max-h-[70px] max-w-[220px] object-contain my-1" />
+                        {signer?.signature ? (
+                            <img src={signer.signature} alt="Signature" className="block max-h-[70px] max-w-[220px] object-contain my-1" />
                         ) : (
                             <div className="h-[60px]" />
                         )}
-                        <div className="font-bold text-gray-900">
-                            {company.ceo_name || quotation.createdBy?.name}
-                        </div>
-                        <div className="text-gray-600 text-[13px]">{company.ceo_title || 'CEO'}</div>
+                        <div className="font-bold text-gray-900">{signer?.name}</div>
+                        {signer?.title && <div className="text-gray-600 text-[13px]">{signer.title}</div>}
                         <div className="font-bold text-gray-900 text-[16px] mt-1.5">{company.name || 'Interior Villa'}</div>
                         {(company.phone || company.phone2) && (
                             <div className="text-gray-700 text-[13px] mt-1">

@@ -5,7 +5,7 @@ import PageHeader from '@/Components/PageHeader';
 import FormField from '@/Components/FormField';
 import {
     UserCircleIcon, CameraIcon, TrashIcon,
-    KeyIcon, ShieldCheckIcon, EnvelopeIcon, PhoneIcon,
+    KeyIcon, ShieldCheckIcon, EnvelopeIcon, PhoneIcon, PencilSquareIcon,
 } from '@heroicons/react/24/outline';
 
 export default function ProfileEdit({ user }) {
@@ -17,6 +17,7 @@ export default function ProfileEdit({ user }) {
         name:  user.name ?? '',
         email: user.email ?? '',
         phone: user.phone ?? '',
+        designation: user.designation ?? '',
     });
 
     // Password form
@@ -65,6 +66,22 @@ export default function ProfileEdit({ user }) {
         if (confirm('Remove your profile photo?')) {
             router.delete(route('profile.avatar.remove'));
             setAvatarPreview(null);
+        }
+    }
+
+    const signatureInputRef = useRef(null);
+    const currentSignature = user.signature_path ? `/storage/${user.signature_path}` : null;
+
+    function handleSignatureUpload(e) {
+        const file = e.target.files[0];
+        e.target.value = '';
+        if (!file) return;
+        router.post(route('profile.signature'), { signature: file }, { forceFormData: true, preserveScroll: true });
+    }
+
+    function removeSignature() {
+        if (confirm('Remove your signature? Your quotations will show the company signature instead.')) {
+            router.delete(route('profile.signature.remove'), { preserveScroll: true });
         }
     }
 
@@ -144,6 +161,11 @@ export default function ProfileEdit({ user }) {
                                         onChange={e => profileForm.setData('phone', e.target.value)} placeholder="+880..." />
                                 </div>
                             </FormField>
+                            <FormField label="Designation" error={profileForm.errors.designation}
+                                hint="Shown under your name on quotations you create">
+                                <input className="form-input" value={profileForm.data.designation}
+                                    onChange={e => profileForm.setData('designation', e.target.value)} placeholder="e.g. Sales Manager" />
+                            </FormField>
                         </div>
                         <div className="mt-5 pt-4 border-t border-gray-100">
                             <button type="submit" disabled={profileForm.processing} className="btn btn-primary">
@@ -152,6 +174,39 @@ export default function ProfileEdit({ user }) {
                         </div>
                     </div>
                 </form>
+
+                {/* ── Signature ───────────────────── */}
+                <div className="card p-5 sm:p-6">
+                    <h3 className="text-sm font-semibold text-gray-700 mb-1 flex items-center gap-2">
+                        <PencilSquareIcon className="w-5 h-5 text-gray-400" /> Signature
+                    </h3>
+                    <p className="text-xs text-gray-400 mb-4">
+                        Appears on the quotations you create, with your name and designation.
+                        Without one, your quotations show the company signature.
+                    </p>
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                        <div className="w-56 h-24 rounded-lg border border-dashed border-gray-300 bg-gray-50 flex items-center justify-center overflow-hidden">
+                            {currentSignature
+                                ? <img src={currentSignature} alt="Your signature" className="max-w-full max-h-full object-contain" />
+                                : <span className="text-xs text-gray-400">No signature uploaded</span>}
+                        </div>
+                        <div>
+                            <div className="flex gap-2">
+                                <button type="button" onClick={() => signatureInputRef.current?.click()} className="btn btn-secondary text-xs">
+                                    {currentSignature ? 'Change Signature' : 'Upload Signature'}
+                                </button>
+                                {currentSignature && (
+                                    <button type="button" onClick={removeSignature}
+                                        className="btn text-xs text-red-500 hover:text-red-700 flex items-center gap-1.5">
+                                        <TrashIcon className="w-3.5 h-3.5" /> Remove
+                                    </button>
+                                )}
+                            </div>
+                            <p className="text-[10px] text-gray-400 mt-2">PNG with a transparent background works best. Max 1MB.</p>
+                            <input ref={signatureInputRef} type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={handleSignatureUpload} />
+                        </div>
+                    </div>
+                </div>
 
                 {/* ── Change Password ─────────────── */}
                 <form onSubmit={submitPassword}>

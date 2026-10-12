@@ -126,4 +126,34 @@ class Quotation extends Model
 
         return $array;
     }
+
+    /**
+     * Who signs this quotation: the user who created it, using the signature
+     * and designation from their profile. Until that user uploads a
+     * signature, the company signature and CEO name are used instead.
+     *
+     * @param callable(?string): ?string $resolveImage turns a public-disk path into an image src
+     * @return array{signature: ?string, name: ?string, title: ?string}
+     */
+    public function signer(callable $resolveImage): array
+    {
+        $creator = $this->createdBy;
+        $own     = $creator?->signature_path ? $resolveImage($creator->signature_path) : null;
+
+        if ($own) {
+            return [
+                'signature' => $own,
+                'name'      => $creator->name,
+                'title'     => $creator->designation,
+            ];
+        }
+
+        $ceoName = Setting::get('company_ceo_name');
+
+        return [
+            'signature' => $resolveImage(Setting::get('company_signature')),
+            'name'      => $ceoName ?: $creator?->name,
+            'title'     => $ceoName ? Setting::get('company_ceo_title', 'CEO') : 'Prepared By',
+        ];
+    }
 }

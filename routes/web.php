@@ -111,6 +111,8 @@ Route::middleware('auth')->group(function () {
     Route::put('/profile/password', [ProfileController::class, 'updatePassword'])->name('profile.password');
     Route::post('/profile/avatar', [ProfileController::class, 'uploadAvatar'])->name('profile.avatar');
     Route::delete('/profile/avatar', [ProfileController::class, 'removeAvatar'])->name('profile.avatar.remove');
+    Route::post('/profile/signature', [ProfileController::class, 'uploadSignature'])->name('profile.signature');
+    Route::delete('/profile/signature', [ProfileController::class, 'removeSignature'])->name('profile.signature.remove');
 
     Route::middleware('force.password')->group(function () {
         Route::get('/', [DashboardController::class, 'index'])->name('dashboard');

@@ -72,6 +72,12 @@ class QuotationMail extends Mailable
             'companyCeoName'    => Setting::get('company_ceo_name'),
             'companyCeoTitle'   => Setting::get('company_ceo_title', 'CEO'),
             'companyLogo'       => $logoSrc,
+            'signer'            => $this->quotation->signer(function (?string $path): ?string {
+                $abs = $path ? storage_path('app/public/' . $path) : null;
+                return $abs && is_file($abs)
+                    ? 'data:image/' . pathinfo($abs, PATHINFO_EXTENSION) . ';base64,' . base64_encode(file_get_contents($abs))
+                    : null;
+            }),
             'grandTotalInWords' => NumberToWords::toBdt((float) $this->quotation->grand_total),
             'isPdf'             => true,
         ])->setPaper('a4');

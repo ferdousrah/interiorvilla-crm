@@ -15,7 +15,7 @@ class ProfileController extends Controller
     public function edit(): Response
     {
         return Inertia::render('Profile/Edit', [
-            'user' => auth()->user()->only('id', 'name', 'email', 'phone', 'avatar_path'),
+            'user' => auth()->user()->only('id', 'name', 'email', 'phone', 'designation', 'avatar_path', 'signature_path'),
         ]);
     }
 
@@ -27,6 +27,7 @@ class ProfileController extends Controller
             'name'  => 'required|string|max:150',
             'email' => 'required|email|max:150|unique:users,email,' . $user->id,
             'phone' => 'nullable|string|max:20',
+            'designation' => 'nullable|string|max:100',
         ]);
 
         $user->update($validated);
@@ -78,5 +79,36 @@ class ProfileController extends Controller
         $user->update(['avatar_path' => null]);
 
         return back()->with('success', 'Avatar removed.');
+    }
+
+    /** Signature image shown on quotations this user creates. */
+    public function uploadSignature(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'signature' => 'required|image|mimes:png,jpg,jpeg,webp|max:1024',
+        ]);
+
+        $user = auth()->user();
+
+        if ($user->signature_path && Storage::disk('public')->exists($user->signature_path)) {
+            Storage::disk('public')->delete($user->signature_path);
+        }
+
+        $path = $request->file('signature')->store('signatures', 'public');
+        $user->update(['signature_path' => $path]);
+
+        return back()->with('success', 'Signature updated.');
+    }
+
+    public function removeSignature(): RedirectResponse
+    {
+        $user = auth()->user();
+
+        if ($user->signature_path && Storage::disk('public')->exists($user->signature_path)) {
+            Storage::disk('public')->delete($user->signature_path);
+        }
+        $user->update(['signature_path' => null]);
+
+        return back()->with('success', 'Signature removed.');
     }
 }

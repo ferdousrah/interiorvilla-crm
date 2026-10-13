@@ -4,6 +4,8 @@ import AppLayout from '@/Layouts/AppLayout';
 import PageHeader from '@/Components/PageHeader';
 import Modal from '@/Components/Modal';
 import FormField from '@/Components/FormField';
+import FilterBar from '@/Components/FilterBar';
+import Pagination from '@/Components/Pagination';
 import { formatBDT, formatDate } from '@/utils/formatters';
 import {
     PlusIcon, Cog6ToothIcon, ClockIcon, CheckCircleIcon, XCircleIcon,
@@ -243,7 +245,16 @@ export default function Expenses({
                     </form>
                 )}
 
-                <div className="card overflow-hidden">
+                <FilterBar routeName="accounts.expenses.index" filters={filters} fields={[
+                    { type: 'search', name: 'search', placeholder: 'Code, description, reference…' },
+                    { type: 'select', name: 'project_id', placeholder: 'All projects', options: projects.map(pr => ({ value: pr.id, label: pr.name })) },
+                    { type: 'select', name: 'expense_category_id', placeholder: 'All categories', options: expenseCategories.map(c => ({ value: c.id, label: c.name })) },
+                    { type: 'select', name: 'paid_from', placeholder: 'Paid from: all', options: cashBankHeads.map(h => ({ value: h.id, label: h.name })) },
+                    { type: 'date', name: 'from', label: 'From' },
+                    { type: 'date', name: 'to', label: 'To' },
+                ]} />
+
+                <div className="card overflow-x-auto">
                     <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-gray-50">
                             <tr>{['Date', 'Code', 'Project', 'Description', 'Amount', 'Account Head', 'Paid From', 'Submitted By', 'Status', ''].map(h => (
@@ -317,6 +328,7 @@ export default function Expenses({
                         </tbody>
                     </table>
                 </div>
+                <Pagination data={expenses} />
             </div>
 
             {/* Edit modal */}

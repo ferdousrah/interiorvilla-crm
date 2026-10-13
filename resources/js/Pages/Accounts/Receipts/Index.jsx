@@ -4,6 +4,8 @@ import PageHeader from '@/Components/PageHeader';
 import FormField from '@/Components/FormField';
 import { formatBDT, formatDate } from '@/utils/formatters';
 import Modal from '@/Components/Modal';
+import FilterBar from '@/Components/FilterBar';
+import Pagination from '@/Components/Pagination';
 import { usePermissions } from '@/Hooks/usePermissions';
 import { PlusIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { useState } from 'react';
@@ -11,7 +13,7 @@ import dayjs from 'dayjs';
 
 const PAYMENT_METHODS = ['cash', 'bank_transfer', 'cheque', 'bkash', 'nagad', 'rocket', 'other'];
 
-export default function Receipts({ receipts, invoices = [], depositAccounts = [] }) {
+export default function Receipts({ receipts, invoices = [], depositAccounts = [], filters = {} }) {
     const [showForm, setShowForm] = useState(false);
     const { data, setData, post, processing, errors, reset } = useForm({
         invoice_id: '',
@@ -90,7 +92,7 @@ export default function Receipts({ receipts, invoices = [], depositAccounts = []
     return (
         <AppLayout>
             <Head title="Client Receipts" />
-            <PageHeader title="Client Receipts" subtitle={`${(receipts.data ?? receipts).length} receipts`}>
+            <PageHeader title="Client Receipts" subtitle={`${receipts.total ?? (receipts.data ?? receipts).length} receipts`}>
                 <button onClick={() => setShowForm(!showForm)} className="btn btn-primary flex items-center gap-2">
                     <PlusIcon className="w-4 h-4" /> Record Receipt
                 </button>
@@ -155,7 +157,16 @@ export default function Receipts({ receipts, invoices = [], depositAccounts = []
                         </div>
                     </form>
                 )}
-                <div className="card overflow-hidden">
+                <div className="mb-4">
+                    <FilterBar routeName="accounts.receipts.index" filters={filters} fields={[
+                        { type: 'search', name: 'search', placeholder: 'Code, client, invoice, reference…' },
+                        { type: 'select', name: 'payment_method', placeholder: 'All methods', options: PAYMENT_METHODS.map(m => ({ value: m, label: m.replace('_', ' ').replace(/^./, c => c.toUpperCase()) })) },
+                        { type: 'select', name: 'account_head_id', placeholder: 'All deposit accounts', options: depositAccounts.map(a => ({ value: a.id, label: a.name })) },
+                        { type: 'date', name: 'from', label: 'From' },
+                        { type: 'date', name: 'to', label: 'To' },
+                    ]} />
+                </div>
+                <div className="card overflow-x-auto">
                     <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-gray-50">
                             <tr>{['Date','Code','Invoice','Client','Amount','Method','Deposit Account','Reference',''].map((h, i) => (
@@ -205,6 +216,7 @@ export default function Receipts({ receipts, invoices = [], depositAccounts = []
                         </tbody>
                     </table>
                 </div>
+                <Pagination data={receipts} />
             </div>
 
             <Modal open={!!editing} onClose={() => setEditing(null)} size="md"

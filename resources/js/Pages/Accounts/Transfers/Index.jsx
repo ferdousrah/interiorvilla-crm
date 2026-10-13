@@ -5,6 +5,8 @@ import AppLayout from '@/Layouts/AppLayout';
 import PageHeader from '@/Components/PageHeader';
 import FormField from '@/Components/FormField';
 import Modal from '@/Components/Modal';
+import FilterBar from '@/Components/FilterBar';
+import Pagination from '@/Components/Pagination';
 import { usePermissions } from '@/Hooks/usePermissions';
 import { formatBDT, formatDate } from '@/utils/formatters';
 import { PlusIcon, PencilIcon, TrashIcon, ArrowRightIcon, ArrowsRightLeftIcon } from '@heroicons/react/24/outline';
@@ -12,7 +14,7 @@ import { PlusIcon, PencilIcon, TrashIcon, ArrowRightIcon, ArrowsRightLeftIcon } 
 const today = () => dayjs().format('YYYY-MM-DD');
 const blank = () => ({ from_account_id: '', to_account_id: '', amount: '', transfer_date: today(), reference: '', notes: '' });
 
-export default function FundTransfers({ transfers, accounts = [] }) {
+export default function FundTransfers({ transfers, accounts = [], filters = {} }) {
     const { can, hasRole } = usePermissions();
     const canEdit = can('create.invoices');
     const canDelete = hasRole('admin');
@@ -59,7 +61,6 @@ export default function FundTransfers({ transfers, accounts = [] }) {
     }
 
     const rows = transfers.data ?? transfers;
-    const total = transfers.total ?? rows.length;
     const fromAccount = accounts.find(a => a.id === form.data.from_account_id);
     const amount = parseFloat(form.data.amount) || 0;
     // When editing, the transfer's own amount has already left the source account.
@@ -88,6 +89,13 @@ export default function FundTransfers({ transfers, accounts = [] }) {
                         </div>
                     ))}
                 </div>
+
+                <FilterBar routeName="accounts.transfers.index" filters={filters} fields={[
+                    { type: 'search', name: 'search', placeholder: 'Code, reference, notes…' },
+                    { type: 'select', name: 'account_id', placeholder: 'All accounts', options: accounts.map(a => ({ value: a.id, label: a.name })) },
+                    { type: 'date', name: 'from', label: 'From' },
+                    { type: 'date', name: 'to', label: 'To' },
+                ]} />
 
                 <div className="card overflow-x-auto">
                     <table className="min-w-full divide-y divide-gray-200">
@@ -131,7 +139,7 @@ export default function FundTransfers({ transfers, accounts = [] }) {
                         </tbody>
                     </table>
                 </div>
-                {total > rows.length && <p className="text-xs text-gray-400">Showing the latest {rows.length} of {total}.</p>}
+                <Pagination data={transfers} />
             </div>
 
             <Modal open={!!modal} onClose={() => setModal(null)} size="md"

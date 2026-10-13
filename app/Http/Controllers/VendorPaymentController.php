@@ -24,13 +24,28 @@ class VendorPaymentController extends Controller
     {
         $this->authorize('viewAny', \App\Models\Invoice::class);
 
-        $payments = VendorPayment::with(['vendor', 'purchaseOrder', 'accountHead'])
-            ->orderByDesc('payment_date')
+        $query = VendorPayment::query()
+            ->when($request->search, fn ($q, $s) => $q->where(fn ($q) => $q
+                ->where('code', 'like', "%{$s}%")
+                ->orWhere('reference', 'like', "%{$s}%")
+                ->orWhereHas('vendor', fn ($v) => $v->where('name', 'like', "%{$s}%"))
+                ->orWhereHas('purchaseOrder', fn ($po) => $po->where('code', 'like', "%{$s}%"))))
+            ->when($request->vendor_id, fn ($q, $v) => $q->where('vendor_id', $v))
+            ->when($request->payment_method, fn ($q, $m) => $q->where('payment_method', $m))
+            ->when($request->from, fn ($q, $d) => $q->whereDate('payment_date', '>=', $d))
+            ->when($request->to, fn ($q, $d) => $q->whereDate('payment_date', '<=', $d));
+
+        $totalAmount = (float) (clone $query)->sum('amount');
+
+        $payments = $query->with(['vendor', 'purchaseOrder', 'accountHead'])
+            ->orderByDesc('payment_date')->orderByDesc('created_at')
             ->paginate(25)->withQueryString();
 
         return Inertia::render('Accounts/VendorPayments/Index', [
             'payments'    => $payments,
-            'totalAmount' => (float) VendorPayment::sum('amount'),
+            'totalAmount' => $totalAmount,
+            'filters'     => $request->only(['search', 'vendor_id', 'payment_method', 'from', 'to']),
+            'vendors'     => Vendor::orderBy('name')->get(['id', 'name']),
         ]);
     }
 

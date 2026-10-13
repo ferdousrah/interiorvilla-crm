@@ -26,26 +26,34 @@ class ExpenseController extends Controller
     {
         $this->authorize('viewAny', \App\Models\Invoice::class);
 
-        $query = Expense::with(['accountHead', 'paidFrom', 'project', 'category', 'submittedBy', 'approvedBy'])
-            ->when($request->project_id, fn($q, $p) => $q->where('project_id', $p))
-            ->when($request->expense_category_id, fn($q, $c) => $q->where('expense_category_id', $c))
-            ->when($request->status, fn($q, $s) => $q->where('status', $s))
-            ->orderByRaw("FIELD(status, 'pending', 'rejected', 'approved')") // pending first
-            ->orderByDesc('expense_date');
+        // Everything except status, so the status cards count within the other filters.
+        $base = Expense::query()
+            ->when($request->search, fn ($q, $s) => $q->where(fn ($q) => $q
+                ->where('code', 'like', "%{$s}%")
+                ->orWhere('description', 'like', "%{$s}%")
+                ->orWhere('reference', 'like', "%{$s}%")))
+            ->when($request->project_id, fn ($q, $p) => $q->where('project_id', $p))
+            ->when($request->expense_category_id, fn ($q, $c) => $q->where('expense_category_id', $c))
+            ->when($request->paid_from, fn ($q, $a) => $q->where('paid_from', $a))
+            ->when($request->from, fn ($q, $d) => $q->whereDate('expense_date', '>=', $d))
+            ->when($request->to, fn ($q, $d) => $q->whereDate('expense_date', '<=', $d));
+
+        $counts = (clone $base)->selectRaw('status, COUNT(*) as n')->groupBy('status')->pluck('n', 'status');
+
+        $query = (clone $base)->when($request->status, fn ($q, $s) => $q->where('status', $s));
 
         // Sum of everything matching the current filters, not just the visible page.
-        $totalAmount = (float) (clone $query)->reorder()->sum('amount');
+        $totalAmount = (float) (clone $query)->sum('amount');
 
-        $expenses = $query->paginate(25)->withQueryString();
-
-        // Counts for the status strip at the top
-        $counts = Expense::selectRaw('status, COUNT(*) as n')
-            ->groupBy('status')
-            ->pluck('n', 'status');
+        $expenses = $query
+            ->with(['accountHead', 'paidFrom', 'project', 'category', 'submittedBy', 'approvedBy'])
+            ->orderByRaw("FIELD(status, 'pending', 'rejected', 'approved')") // pending first
+            ->orderByDesc('expense_date')
+            ->paginate(25)->withQueryString();
 
         return Inertia::render('Accounts/Expenses/Index', [
             'expenses' => $expenses,
-            'filters'  => $request->only(['project_id', 'expense_category_id', 'status']),
+            'filters'  => $request->only(['search', 'project_id', 'expense_category_id', 'paid_from', 'from', 'to', 'status']),
             'totalAmount' => $totalAmount,
             'counts'   => [
                 'pending'  => (int) ($counts['pending']  ?? 0),

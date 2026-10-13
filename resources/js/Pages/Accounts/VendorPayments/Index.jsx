@@ -1,10 +1,12 @@
 import { Head, Link } from '@inertiajs/react';
 import AppLayout from '@/Layouts/AppLayout';
 import PageHeader from '@/Components/PageHeader';
+import FilterBar from '@/Components/FilterBar';
+import Pagination from '@/Components/Pagination';
 import { formatBDT, formatDate } from '@/utils/formatters';
 import { PlusIcon, BanknotesIcon } from '@heroicons/react/24/outline';
 
-export default function VendorPayments({ payments, totalAmount = 0 }) {
+export default function VendorPayments({ payments, totalAmount = 0, filters = {}, vendors = [] }) {
     const rows = payments.data ?? payments;
     const total = payments.total ?? rows.length;
 
@@ -24,6 +26,13 @@ export default function VendorPayments({ payments, totalAmount = 0 }) {
                     </div>
                     <p className="text-xl font-bold text-red-600 mt-1 tabular-nums">{formatBDT(totalAmount)}</p>
                 </div>
+                <FilterBar routeName="accounts.vendor-payments.index" filters={filters} fields={[
+                    { type: 'search', name: 'search', placeholder: 'Code, vendor, purchase, reference…' },
+                    { type: 'select', name: 'vendor_id', placeholder: 'All vendors', options: vendors.map(v => ({ value: v.id, label: v.name })) },
+                    { type: 'select', name: 'payment_method', placeholder: 'All methods', options: ['cash', 'bank_transfer', 'cheque', 'bkash', 'nagad', 'rocket', 'other'].map(m => ({ value: m, label: m.replace('_', ' ').replace(/^./, c => c.toUpperCase()) })) },
+                    { type: 'date', name: 'from', label: 'From' },
+                    { type: 'date', name: 'to', label: 'To' },
+                ]} />
                 <div className="card overflow-x-auto">
                     <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-gray-50">
@@ -58,6 +67,7 @@ export default function VendorPayments({ payments, totalAmount = 0 }) {
                         </tbody>
                     </table>
                 </div>
+                <Pagination data={payments} />
             </div>
         </AppLayout>
     );

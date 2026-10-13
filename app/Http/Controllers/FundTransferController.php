@@ -21,11 +21,19 @@ class FundTransferController extends Controller
         private AccountingService $accounting
     ) {}
 
-    public function index(): Response
+    public function index(Request $request): Response
     {
         $this->authorize('viewAny', Invoice::class);
 
         $transfers = FundTransfer::with(['fromAccount:id,code,name', 'toAccount:id,code,name', 'createdBy:id,name'])
+            ->when($request->search, fn ($q, $s) => $q->where(fn ($q) => $q
+                ->where('code', 'like', "%{$s}%")
+                ->orWhere('reference', 'like', "%{$s}%")
+                ->orWhere('notes', 'like', "%{$s}%")))
+            ->when($request->account_id, fn ($q, $a) => $q->where(fn ($q) => $q
+                ->where('from_account_id', $a)->orWhere('to_account_id', $a)))
+            ->when($request->from, fn ($q, $d) => $q->whereDate('transfer_date', '>=', $d))
+            ->when($request->to, fn ($q, $d) => $q->whereDate('transfer_date', '<=', $d))
             ->orderByDesc('transfer_date')->orderByDesc('created_at')
             ->paginate(25)->withQueryString();
 
@@ -49,6 +57,7 @@ class FundTransferController extends Controller
 
         return Inertia::render('Accounts/Transfers/Index', [
             'transfers' => $transfers,
+            'filters'   => $request->only(['search', 'account_id', 'from', 'to']),
             'accounts'  => $accounts,
         ]);
     }

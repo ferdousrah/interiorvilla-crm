@@ -44,8 +44,12 @@ class InvoiceController extends Controller
         // Cash-basis month revenue + expenses
         $revenueThisMonth = (float) ClientReceipt::whereBetween('receipt_date', [$monthStart, $monthEnd])->sum('amount');
         $revenueLastMonth = (float) ClientReceipt::whereBetween('receipt_date', [$lastStart, $lastEnd])->sum('amount');
-        $expensesThisMonth = (float) \App\Models\Expense::whereBetween('expense_date', [$monthStart, $monthEnd])->sum('amount');
-        $expensesLastMonth = (float) \App\Models\Expense::whereBetween('expense_date', [$lastStart, $lastEnd])->sum('amount');
+        // Money out = approved expenses + payments made to vendors for purchases.
+        $moneyOut = fn ($from, $to) =>
+            (float) \App\Models\Expense::where('status', 'approved')->whereBetween('expense_date', [$from, $to])->sum('amount')
+            + (float) \App\Models\VendorPayment::whereBetween('payment_date', [$from, $to])->sum('amount');
+        $expensesThisMonth = $moneyOut($monthStart, $monthEnd);
+        $expensesLastMonth = $moneyOut($lastStart, $lastEnd);
 
         // Outstanding receivables: grand_total - paid_amount on open invoices
         $totalReceivables = (float) Invoice::whereNotIn('status', ['paid', 'cancelled'])

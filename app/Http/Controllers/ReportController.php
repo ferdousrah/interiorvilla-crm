@@ -216,7 +216,7 @@ class ReportController extends Controller
                 $balance += $debit - $credit;
                 return [
                     'date'            => (string) $l->journal?->entry_date?->toDateString(),
-                    'description'    => $l->journal?->narration ?? '',
+                    'description'    => $l->journal?->description ?? '',
                     'reference'      => $l->journal?->reference_type,
                     'debit'          => $debit,
                     'credit'         => $credit,

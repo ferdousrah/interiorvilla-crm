@@ -45,6 +45,7 @@ use App\Http\Controllers\ExpenseCategoryController;
 use App\Http\Controllers\MaterialController;
 use App\Http\Controllers\SettingController;
 use App\Http\Controllers\CompanyProfileController;
+use App\Http\Controllers\FundTransferController;
 use Illuminate\Support\Facades\Route;
 
 // Auth routes (guest)
@@ -202,6 +203,7 @@ Route::middleware('auth')->group(function () {
             Route::post('invoices/{invoice}/send-email', [InvoiceController::class, 'sendEmail'])->name('invoices.send-email');
             Route::resource('receipts', ClientReceiptController::class);
             Route::resource('vendor-payments', VendorPaymentController::class);
+            Route::resource('transfers', FundTransferController::class)->only(['index', 'store', 'update', 'destroy']);
             Route::resource('expenses', ExpenseController::class);
             Route::patch('expenses/{expense}/approve', [ExpenseController::class, 'approve'])->name('expenses.approve');
             Route::patch('expenses/{expense}/reject', [ExpenseController::class, 'reject'])->name('expenses.reject');

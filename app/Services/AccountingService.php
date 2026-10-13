@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\AccountHead;
 use App\Models\ClientReceipt;
 use App\Models\Expense;
+use App\Models\FundTransfer;
 use App\Models\Invoice;
 use App\Models\JournalEntry;
 use App\Models\JournalLine;
@@ -95,6 +96,22 @@ class AccountingService
             [
                 ['account_head_id' => $expense->account_head_id, 'type' => 'debit', 'amount' => $expense->amount],
                 ['account_head_id' => $expense->paid_from, 'type' => 'credit', 'amount' => $expense->amount],
+            ]
+        );
+    }
+
+    /** Moving money between own accounts: the receiving account goes up, the source goes down. */
+    public function postFundTransfer(FundTransfer $transfer): void
+    {
+        $this->createJournalEntry(
+            'fund_transfer',
+            $transfer->id,
+            "Transfer {$transfer->code} - {$transfer->fromAccount->name} to {$transfer->toAccount->name}",
+            $transfer->transfer_date,
+            $transfer->created_by,
+            [
+                ['account_head_id' => $transfer->to_account_id, 'type' => 'debit', 'amount' => $transfer->amount],
+                ['account_head_id' => $transfer->from_account_id, 'type' => 'credit', 'amount' => $transfer->amount],
             ]
         );
     }

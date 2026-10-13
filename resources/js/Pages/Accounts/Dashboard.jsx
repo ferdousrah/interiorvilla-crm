@@ -110,7 +110,7 @@ export default function AccountsDashboard({ stats = {}, recentInvoices = [], ove
                     <KpiCard
                         label="Expenses · This Month"
                         value={formatBDT(stats.expenses_month)}
-                        subtitle="Operating costs"
+                        subtitle="Expenses + vendor payments"
                         icon={ArrowTrendingDownIcon}
                         color="amber"
                         href={route('accounts.expenses.index')}

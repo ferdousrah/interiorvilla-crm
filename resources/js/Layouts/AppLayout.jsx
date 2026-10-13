@@ -75,6 +75,7 @@ const navGroups = [
             { name: 'Invoices', href: '/accounts/invoices' },
             { name: 'Receipts', href: '/accounts/receipts' },
             { name: 'Vendor Payments', href: '/accounts/vendor-payments' },
+            { name: 'Fund Transfers', href: '/accounts/transfers' },
             { name: 'Expenses', href: '/accounts/expenses' },
             { name: 'Paid Service Approvals', href: '/accounts/paid-service-approvals' },
             { name: 'Chart of Accounts', href: '/accounts/chart' },

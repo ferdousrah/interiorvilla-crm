@@ -172,7 +172,7 @@ class SettingController extends Controller
             // Accounts
             'journal_lines', 'journal_entries',
             'invoice_line_items', 'client_receipts', 'invoices',
-            'vendor_payments', 'expenses',
+            'vendor_payments', 'expenses', 'fund_transfers',
 
             // Stock movements
             'stock_transactions', 'stock_adjustments',

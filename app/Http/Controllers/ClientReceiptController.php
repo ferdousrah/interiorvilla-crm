@@ -26,7 +26,7 @@ class ClientReceiptController extends Controller
     {
         $this->authorize('viewAny', Invoice::class);
 
-        $receipts = ClientReceipt::with(['client', 'invoice.client', 'accountHead'])
+        $query = ClientReceipt::query()
             ->when($request->search, fn ($q, $s) => $q->where(fn ($q) => $q
                 ->where('code', 'like', "%{$s}%")
                 ->orWhere('reference', 'like', "%{$s}%")
@@ -36,7 +36,12 @@ class ClientReceiptController extends Controller
             ->when($request->payment_method, fn ($q, $m) => $q->where('payment_method', $m))
             ->when($request->account_head_id, fn ($q, $a) => $q->where('account_head_id', $a))
             ->when($request->from, fn ($q, $d) => $q->whereDate('receipt_date', '>=', $d))
-            ->when($request->to, fn ($q, $d) => $q->whereDate('receipt_date', '<=', $d))
+            ->when($request->to, fn ($q, $d) => $q->whereDate('receipt_date', '<=', $d));
+
+        // Sum of everything matching the current filters, not just the visible page.
+        $totalAmount = (float) (clone $query)->sum('amount');
+
+        $receipts = $query->with(['client', 'invoice.client', 'accountHead'])
             ->orderByDesc('receipt_date')->orderByDesc('created_at')
             ->paginate(25)->withQueryString();
 
@@ -68,6 +73,7 @@ class ClientReceiptController extends Controller
 
         return Inertia::render('Accounts/Receipts/Index', [
             'receipts'        => $receipts,
+            'totalAmount'     => $totalAmount,
             'filters'         => $request->only(['search', 'payment_method', 'account_head_id', 'from', 'to']),
             'invoices'        => $openInvoices,
             'depositAccounts' => $depositAccounts,

@@ -7,13 +7,13 @@ import Modal from '@/Components/Modal';
 import FilterBar from '@/Components/FilterBar';
 import Pagination from '@/Components/Pagination';
 import { usePermissions } from '@/Hooks/usePermissions';
-import { PlusIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, PencilIcon, TrashIcon, BanknotesIcon } from '@heroicons/react/24/outline';
 import { useState } from 'react';
 import dayjs from 'dayjs';
 
 const PAYMENT_METHODS = ['cash', 'bank_transfer', 'cheque', 'bkash', 'nagad', 'rocket', 'other'];
 
-export default function Receipts({ receipts, invoices = [], depositAccounts = [], filters = {} }) {
+export default function Receipts({ receipts, invoices = [], depositAccounts = [], filters = {}, totalAmount = 0 }) {
     const [showForm, setShowForm] = useState(false);
     const { data, setData, post, processing, errors, reset } = useForm({
         invoice_id: '',
@@ -157,6 +157,13 @@ export default function Receipts({ receipts, invoices = [], depositAccounts = []
                         </div>
                     </form>
                 )}
+                <div className="card p-3 ring-1 ring-gray-100 sm:max-w-xs mb-4">
+                    <div className="flex items-center gap-2">
+                        <BanknotesIcon className="w-4 h-4 text-green-600" />
+                        <span className="text-xs text-gray-500 uppercase font-semibold">Total Amount</span>
+                    </div>
+                    <p className="text-xl font-bold text-green-700 mt-1 tabular-nums">{formatBDT(totalAmount)}</p>
+                </div>
                 <div className="mb-4">
                     <FilterBar routeName="accounts.receipts.index" filters={filters} fields={[
                         { type: 'search', name: 'search', placeholder: 'Code, client, invoice, reference…' },

@@ -28,7 +28,10 @@ class VendorPaymentController extends Controller
             ->orderByDesc('payment_date')
             ->paginate(25)->withQueryString();
 
-        return Inertia::render('Accounts/VendorPayments/Index', ['payments' => $payments]);
+        return Inertia::render('Accounts/VendorPayments/Index', [
+            'payments'    => $payments,
+            'totalAmount' => (float) VendorPayment::sum('amount'),
+        ]);
     }
 
     public function create(Request $request): Response

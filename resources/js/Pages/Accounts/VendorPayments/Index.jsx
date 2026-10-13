@@ -2,9 +2,9 @@ import { Head, Link } from '@inertiajs/react';
 import AppLayout from '@/Layouts/AppLayout';
 import PageHeader from '@/Components/PageHeader';
 import { formatBDT, formatDate } from '@/utils/formatters';
-import { PlusIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, BanknotesIcon } from '@heroicons/react/24/outline';
 
-export default function VendorPayments({ payments }) {
+export default function VendorPayments({ payments, totalAmount = 0 }) {
     const rows = payments.data ?? payments;
     const total = payments.total ?? rows.length;
 
@@ -16,7 +16,14 @@ export default function VendorPayments({ payments }) {
                     <PlusIcon className="w-4 h-4" /> Record Payment
                 </Link>
             </PageHeader>
-            <div className="p-4 sm:p-6">
+            <div className="p-4 sm:p-6 space-y-4">
+                <div className="card p-3 ring-1 ring-gray-100 sm:max-w-xs">
+                    <div className="flex items-center gap-2">
+                        <BanknotesIcon className="w-4 h-4 text-red-500" />
+                        <span className="text-xs text-gray-500 uppercase font-semibold">Total Amount</span>
+                    </div>
+                    <p className="text-xl font-bold text-red-600 mt-1 tabular-nums">{formatBDT(totalAmount)}</p>
+                </div>
                 <div className="card overflow-x-auto">
                     <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-gray-50">

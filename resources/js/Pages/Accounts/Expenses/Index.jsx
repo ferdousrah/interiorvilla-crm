@@ -27,6 +27,7 @@ export default function Expenses({
     expenses,
     filters = {},
     counts = {},
+    totalAmount = 0,
     expenseCategories = [],
     accountHeads = [],
     cashBankHeads = [],
@@ -145,7 +146,7 @@ export default function Expenses({
                 )}
 
                 {/* Status strip */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-3">
                     <button onClick={() => setStatusFilter('')}
                         className={`card p-3 text-left ring-1 transition-all ${!filters.status ? 'ring-primary-400 bg-primary-50/40' : 'ring-gray-100'}`}>
                         <div className="flex items-center gap-2">
@@ -178,6 +179,15 @@ export default function Expenses({
                         </div>
                         <p className="text-xl font-bold text-red-700 mt-1">{counts.rejected ?? 0}</p>
                     </button>
+                    <div className="card p-3 ring-1 ring-gray-100 col-span-2 sm:col-span-4 lg:col-span-1">
+                        <div className="flex items-center gap-2">
+                            <BanknotesIcon className="w-4 h-4 text-red-500" />
+                            <span className="text-xs text-gray-500 uppercase font-semibold">
+                                Total Amount{filters.status ? ` · ${STATUS_STYLE[filters.status]?.label ?? filters.status}` : ''}
+                            </span>
+                        </div>
+                        <p className="text-xl font-bold text-red-600 mt-1 tabular-nums">{formatBDT(totalAmount)}</p>
+                    </div>
                 </div>
 
                 {/* Quick-add form (accountant direct entry — auto-approved) */}

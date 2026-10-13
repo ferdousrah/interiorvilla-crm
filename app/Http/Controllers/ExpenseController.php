@@ -33,6 +33,9 @@ class ExpenseController extends Controller
             ->orderByRaw("FIELD(status, 'pending', 'rejected', 'approved')") // pending first
             ->orderByDesc('expense_date');
 
+        // Sum of everything matching the current filters, not just the visible page.
+        $totalAmount = (float) (clone $query)->reorder()->sum('amount');
+
         $expenses = $query->paginate(25)->withQueryString();
 
         // Counts for the status strip at the top
@@ -43,6 +46,7 @@ class ExpenseController extends Controller
         return Inertia::render('Accounts/Expenses/Index', [
             'expenses' => $expenses,
             'filters'  => $request->only(['project_id', 'expense_category_id', 'status']),
+            'totalAmount' => $totalAmount,
             'counts'   => [
                 'pending'  => (int) ($counts['pending']  ?? 0),
                 'approved' => (int) ($counts['approved'] ?? 0),

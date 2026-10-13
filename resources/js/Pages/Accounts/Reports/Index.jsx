@@ -3,6 +3,10 @@ import AppLayout from '@/Layouts/AppLayout';
 import PageHeader from '@/Components/PageHeader';
 
 const reports = [
+    { name: 'Monthly Income', description: 'Money received in a month, by income source', route: 'accounts.reports.monthly-income', icon: '💰' },
+    { name: 'Monthly Expense', description: 'Money paid out in a month, by category', route: 'accounts.reports.monthly-expense', icon: '🧾' },
+    { name: 'Income vs Expense', description: 'Month-by-month comparison for a year', route: 'accounts.reports.income-vs-expense', icon: '📈' },
+    { name: 'Profit & Loss', description: 'Net profit for a month, any period, or overall', route: 'accounts.reports.profit-loss', icon: '📑' },
     { name: 'Trial Balance', description: 'All account balances at a point in time', route: 'accounts.reports.trial-balance', icon: '⚖️' },
     { name: 'Client Ledger', description: 'Invoices and receipts for a client', route: 'accounts.reports.client-ledger', icon: '👤' },
     { name: 'Vendor Ledger', description: 'Purchase orders and payments for a vendor', route: 'accounts.reports.vendor-ledger', icon: '🏭' },

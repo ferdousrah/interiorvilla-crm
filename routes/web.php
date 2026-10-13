@@ -225,6 +225,10 @@ Route::middleware('auth')->group(function () {
                 Route::get('project-pl', [ReportController::class, 'projectPL'])->name('project-pl');
                 Route::get('receivables', [ReportController::class, 'receivables'])->name('receivables');
                 Route::get('payables', [ReportController::class, 'payables'])->name('payables');
+                Route::get('monthly-income', [ReportController::class, 'monthlyIncome'])->name('monthly-income');
+                Route::get('monthly-expense', [ReportController::class, 'monthlyExpense'])->name('monthly-expense');
+                Route::get('income-vs-expense', [ReportController::class, 'incomeVsExpense'])->name('income-vs-expense');
+                Route::get('profit-loss', [ReportController::class, 'profitLoss'])->name('profit-loss');
                 Route::get('export/{type}', [ReportController::class, 'export'])->name('export');
             });
         });

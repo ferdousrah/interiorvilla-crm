@@ -4,11 +4,16 @@ namespace App\Http\Controllers;
 
 use App\Models\AccountHead;
 use App\Models\Client;
+use App\Models\ClientReceipt;
+use App\Models\Expense;
 use App\Models\Invoice;
 use App\Models\JournalLine;
 use App\Models\Project;
 use App\Models\Setting;
 use App\Models\Vendor;
+use App\Models\VendorPayment;
+use Carbon\Carbon;
+use Illuminate\Support\Collection;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -352,6 +357,183 @@ class ReportController extends Controller
             'purchaseOrders' => $purchaseOrders,
             'totalPayable'   => $totalPayable,
         ], 'Payables-' . now()->toDateString());
+    }
+
+    // ── Income & expense reports ──────────────────────────────────────────
+    // Cash basis, same as the accounts dashboard: income is money received
+    // from clients, expense is approved expenses plus payments to vendors.
+
+    public function monthlyIncome(Request $request)
+    {
+        return $this->monthlyBreakdown($request, 'income');
+    }
+
+    public function monthlyExpense(Request $request)
+    {
+        return $this->monthlyBreakdown($request, 'expense');
+    }
+
+    private function monthlyBreakdown(Request $request, string $kind)
+    {
+        $this->authorize('viewAny', Invoice::class);
+
+        $month = preg_match('/^\d{4}-\d{2}$/', (string) $request->get('month')) ? $request->get('month') : now()->format('Y-m');
+        $start = Carbon::createFromFormat('Y-m-d', $month . '-01')->startOfDay();
+        $prev  = $start->copy()->subMonthNoOverflow();
+
+        $fetch = fn (Carbon $from) => $kind === 'income'
+            ? $this->incomeRows($from->toDateString(), $from->copy()->endOfMonth()->toDateString())
+            : $this->expenseRows($from->toDateString(), $from->copy()->endOfMonth()->toDateString());
+
+        $rows = $fetch($start);
+
+        return $this->render($request, 'Accounts/Reports/MonthlyBreakdown', 'reports.pdf.monthly-breakdown', [
+            'kind'       => $kind,
+            'month'      => $month,
+            'monthLabel' => $start->format('F Y'),
+            'groups'     => $this->groupTotals($rows),
+            'rows'       => $rows,
+            'total'      => round($rows->sum('amount'), 2),
+            'prevTotal'  => round($fetch($prev)->sum('amount'), 2),
+            'prevLabel'  => $prev->format('F Y'),
+        ], ($kind === 'income' ? 'Monthly-Income-' : 'Monthly-Expense-') . $month);
+    }
+
+    public function incomeVsExpense(Request $request)
+    {
+        $this->authorize('viewAny', Invoice::class);
+
+        $firstYear = (int) substr((string) collect([
+            ClientReceipt::min('receipt_date'),
+            Expense::where('status', 'approved')->min('expense_date'),
+            VendorPayment::min('payment_date'),
+        ])->filter()->min(), 0, 4) ?: now()->year;
+        $years = range(now()->year, min($firstYear, now()->year));
+
+        $year = (int) $request->get('year') ?: now()->year;
+
+        $byMonth = fn (Collection $rows) => $rows->groupBy(fn ($r) => substr($r['date'], 0, 7))->map->sum('amount');
+        $income  = $byMonth($this->incomeRows("{$year}-01-01", "{$year}-12-31"));
+        $expense = $byMonth($this->expenseRows("{$year}-01-01", "{$year}-12-31"));
+
+        $months = collect(range(1, 12))->map(function ($m) use ($year, $income, $expense) {
+            $key = sprintf('%d-%02d', $year, $m);
+            $in  = round((float) ($income[$key] ?? 0), 2);
+            $out = round((float) ($expense[$key] ?? 0), 2);
+            return [
+                'key'     => $key,
+                'label'   => Carbon::create($year, $m, 1)->format('M'),
+                'income'  => $in,
+                'expense' => $out,
+                'net'     => round($in - $out, 2),
+            ];
+        });
+
+        return $this->render($request, 'Accounts/Reports/IncomeVsExpense', 'reports.pdf.income-vs-expense', [
+            'year'   => $year,
+            'years'  => $years,
+            'months' => $months,
+            'totals' => [
+                'income'  => round($months->sum('income'), 2),
+                'expense' => round($months->sum('expense'), 2),
+                'net'     => round($months->sum('net'), 2),
+            ],
+        ], "Income-vs-Expense-{$year}");
+    }
+
+    public function profitLoss(Request $request)
+    {
+        $this->authorize('viewAny', Invoice::class);
+
+        $from = $request->get('from') ?: null;
+        $to   = $request->get('to') ?: null;
+
+        $income  = $this->incomeRows($from, $to);
+        $expense = $this->expenseRows($from, $to);
+
+        $totalIncome  = round($income->sum('amount'), 2);
+        $totalExpense = round($expense->sum('amount'), 2);
+        $fmt = fn (?string $d) => $d ? Carbon::parse($d)->format('d M Y') : null;
+
+        return $this->render($request, 'Accounts/Reports/ProfitLoss', 'reports.pdf.profit-loss', [
+            'filters'       => ['from' => $from, 'to' => $to],
+            'periodLabel'   => match (true) {
+                $from && $to => $fmt($from) . ' – ' . $fmt($to),
+                (bool) $from => 'From ' . $fmt($from),
+                (bool) $to   => 'Up to ' . $fmt($to),
+                default      => 'Overall (all time)',
+            },
+            'incomeGroups'  => $this->groupTotals($income),
+            'expenseGroups' => $this->groupTotals($expense),
+            'totalIncome'   => $totalIncome,
+            'totalExpense'  => $totalExpense,
+            'netProfit'     => round($totalIncome - $totalExpense, 2),
+        ], 'Profit-and-Loss' . ($from || $to ? '-' . ($from ?? 'start') . '-to-' . ($to ?? 'today') : '-Overall'));
+    }
+
+    /** Money received from clients in a period, one row per receipt. */
+    private function incomeRows(?string $from, ?string $to): Collection
+    {
+        return ClientReceipt::with(['client:id,name', 'lead:id,name', 'invoice:id,code,client_id', 'invoice.client:id,name'])
+            ->when($from, fn ($q) => $q->whereDate('receipt_date', '>=', $from))
+            ->when($to, fn ($q) => $q->whereDate('receipt_date', '<=', $to))
+            ->orderBy('receipt_date')
+            ->get()
+            ->map(fn ($r) => [
+                'date'        => $r->receipt_date->toDateString(),
+                'code'        => $r->code,
+                'party'       => $r->client?->name ?? $r->invoice?->client?->name ?? $r->lead?->name ?? '—',
+                'description' => $r->invoice ? "Invoice {$r->invoice->code}" : 'Advance / no invoice',
+                'group'       => $r->income_source ?: 'Other',
+                'amount'      => (float) $r->amount,
+            ])
+            ->values();
+    }
+
+    /** Money paid out in a period: approved expenses plus payments made to vendors. */
+    private function expenseRows(?string $from, ?string $to): Collection
+    {
+        $expenses = Expense::with(['category:id,name', 'accountHead:id,name', 'project:id,name'])
+            ->where('status', 'approved')
+            ->when($from, fn ($q) => $q->whereDate('expense_date', '>=', $from))
+            ->when($to, fn ($q) => $q->whereDate('expense_date', '<=', $to))
+            ->get()
+            ->map(fn ($e) => [
+                'date'        => $e->expense_date->toDateString(),
+                'code'        => $e->code,
+                'party'       => $e->project?->name ?? '—',
+                'description' => $e->description,
+                'group'       => $e->category?->name ?? $e->accountHead?->name ?? 'Uncategorised',
+                'amount'      => (float) $e->amount,
+            ]);
+
+        $payments = VendorPayment::with(['vendor:id,name', 'purchaseOrder:id,code,project_id', 'purchaseOrder.project:id,name'])
+            ->when($from, fn ($q) => $q->whereDate('payment_date', '>=', $from))
+            ->when($to, fn ($q) => $q->whereDate('payment_date', '<=', $to))
+            ->get()
+            ->map(fn ($p) => [
+                'date'        => $p->payment_date->toDateString(),
+                'code'        => $p->code,
+                'party'       => $p->purchaseOrder?->project?->name ?? '—',
+                'description' => trim(($p->vendor?->name ?? 'Vendor') . ($p->purchaseOrder ? " · Purchase {$p->purchaseOrder->code}" : '')),
+                'group'       => 'Vendor Payments (Purchases)',
+                'amount'      => (float) $p->amount,
+            ]);
+
+        return $expenses->concat($payments)->sortBy('date')->values();
+    }
+
+    /** Totals per group, largest first. */
+    private function groupTotals(Collection $rows): Collection
+    {
+        return $rows->groupBy('group')
+            ->map(fn ($items, $name) => [
+                'name'   => $name,
+                'count'  => $items->count(),
+                'amount' => round($items->sum('amount'), 2),
+            ])
+            ->sortByDesc('amount')
+            ->values();
     }
 
     public function export(Request $request, string $type)

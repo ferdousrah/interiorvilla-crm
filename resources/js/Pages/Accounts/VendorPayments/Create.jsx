@@ -1,5 +1,5 @@
 import { Head, useForm } from '@inertiajs/react';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import dayjs from 'dayjs';
 import AppLayout from '@/Layouts/AppLayout';
 import PageHeader from '@/Components/PageHeader';
@@ -11,11 +11,23 @@ const PAYMENT_METHODS = ['cash', 'bank_transfer', 'cheque', 'bkash', 'nagad', 'r
 
 export default function VendorPaymentCreate({
     vendors = [], accountHeads = [], openPurchases = [], projects = [], costHeads = [],
-    defaultCostHeadId = null, prefill = null,
+    defaultCostHeadId = null, prefill = null, payment = null,
 }) {
     const prefillPurchase = prefill?.po_id ? openPurchases.find(p => p.id === prefill.po_id) : null;
 
-    const { data, setData, post, processing, errors } = useForm({
+    const { data, setData, post, put, processing, errors } = useForm(payment ? {
+        payment_for: payment.po_id ? 'purchase' : 'direct',
+        vendor_id: payment.vendor_id,
+        po_id: payment.po_id ?? '',
+        project_id: payment.project_id ?? '',
+        cost_head_id: payment.cost_head_id ?? defaultCostHeadId ?? '',
+        amount: String(payment.amount),
+        payment_date: payment.payment_date,
+        payment_method: payment.payment_method,
+        reference: payment.reference ?? '',
+        account_head_id: payment.account_head_id,
+        notes: payment.notes ?? '',
+    } : {
         payment_for: prefillPurchase ? 'purchase' : 'direct',
         vendor_id: prefillPurchase?.vendor_id ?? '',
         po_id: prefillPurchase?.id ?? '',
@@ -33,8 +45,11 @@ export default function VendorPaymentCreate({
     const selectedPurchase = openPurchases.find(p => p.id === data.po_id);
 
     // A vendor with dues opens on "purchase"; one without (a carpenter) opens on "work".
+    // Only when the vendor is changed by hand — not for the vendor the form opened with.
+    const firstRender = useRef(true);
     useEffect(() => {
-        if (!data.vendor_id || prefillPurchase?.vendor_id === data.vendor_id) return;
+        if (firstRender.current) { firstRender.current = false; return; }
+        if (!data.vendor_id) return;
         setData(d => ({ ...d, payment_for: vendorPurchases.length ? 'purchase' : 'direct', po_id: '' }));
     }, [data.vendor_id]);
 
@@ -45,17 +60,23 @@ export default function VendorPaymentCreate({
 
     function submit(e) {
         e.preventDefault();
-        post(route('accounts.vendor-payments.store'));
+        if (payment) put(route('accounts.vendor-payments.update', payment.id));
+        else post(route('accounts.vendor-payments.store'));
     }
 
     const isPurchase = data.payment_for === 'purchase';
 
     return (
         <AppLayout>
-            <Head title="Record Vendor Payment" />
-            <PageHeader title="Record Vendor Payment" back={route('accounts.vendor-payments.index')} />
+            <Head title={payment ? `Edit Payment ${payment.code}` : 'Record Vendor Payment'} />
+            <PageHeader title={payment ? `Edit Payment ${payment.code}` : 'Record Vendor Payment'} back={route('accounts.vendor-payments.index')} />
             <div className="p-4 sm:p-6 max-w-2xl mx-auto">
                 <form onSubmit={submit} className="card p-6 space-y-5">
+                    {payment && (
+                        <p className="text-xs text-gray-600 bg-gray-50 border border-gray-100 rounded px-3 py-2">
+                            Saving re-posts this payment's ledger entry. A work payment counts in its project's cost; a purchase payment settles that purchase.
+                        </p>
+                    )}
                     <FormField label="Vendor" error={errors.vendor_id} required>
                         <select className="form-input" value={data.vendor_id} onChange={e => setData('vendor_id', e.target.value)}>
                             <option value="">Select vendor…</option>
@@ -147,7 +168,7 @@ export default function VendorPaymentCreate({
 
                     <div className="flex gap-3 pt-2">
                         <button type="submit" disabled={processing} className="btn btn-primary">
-                            {processing ? 'Recording…' : 'Record Payment'}
+                            {processing ? 'Saving…' : (payment ? 'Save Changes' : 'Record Payment')}
                         </button>
                         <a href={route('accounts.vendor-payments.index')} className="btn">Cancel</a>
                     </div>

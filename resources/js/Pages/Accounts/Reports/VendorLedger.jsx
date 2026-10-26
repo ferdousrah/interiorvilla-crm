@@ -65,7 +65,7 @@ export default function VendorLedger({ vendor, transactions = [], vendors = [], 
                             {(transactions ?? []).map((t, i) => (
                                 <tr key={i}>
                                     <td className="px-4 py-3 text-sm">{formatDate(t.date)}</td>
-                                    <td className="px-4 py-3"><Badge variant={t.type === 'purchase_order' ? 'warning' : 'success'}>{t.type?.replace('_', ' ')}</Badge></td>
+                                    <td className="px-4 py-3"><Badge variant={t.type === 'purchase_order' ? 'warning' : 'success'}>{t.type === 'payment' ? 'payment' : (t.label ?? 'purchase')}</Badge></td>
                                     <td className="px-4 py-3 text-sm font-mono text-primary-600">{t.reference}</td>
                                     <td className="px-4 py-3 text-sm text-gray-600">{t.description}</td>
                                     <td className="px-4 py-3 text-sm">{t.type === 'purchase_order' ? formatBDT(t.amount) : '—'}</td>

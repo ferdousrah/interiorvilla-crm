@@ -157,6 +157,7 @@ class PurchaseOrderController extends Controller
                     'code'            => $this->codeGenerator->generate('PMT', 'vendor_payments'),
                     'vendor_id'       => $validated['vendor_id'],
                     'po_id'           => $po->id,
+                    'project_id'      => $validated['project_id'] ?? null,
                     'amount'          => $paidAmount,
                     'payment_date'    => $validated['order_date'],
                     'payment_method'  => $validated['payment_method'],

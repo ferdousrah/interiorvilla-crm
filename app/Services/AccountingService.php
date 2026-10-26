@@ -68,18 +68,24 @@ class AccountingService
         );
     }
 
+    /**
+     * Paying for a purchase settles what we owe (debit Payable). Paying for
+     * work with no purchase behind it is the cost itself (debit its expense head).
+     */
     public function postVendorPaymentMade(VendorPayment $payment): void
     {
-        $ap = AccountHead::where('code', '2100')->firstOrFail();
+        $debitHead = $payment->isDirectCost()
+            ? $payment->cost_head_id
+            : AccountHead::where('code', '2100')->firstOrFail()->id;
 
         $this->createJournalEntry(
             'vendor_payment',
             $payment->id,
-            "Payment {$payment->code} - {$payment->vendor->name}",
+            "Payment {$payment->code} - {$payment->vendor->name}" . ($payment->project ? " ({$payment->project->name})" : ''),
             $payment->payment_date,
             $payment->created_by,
             [
-                ['account_head_id' => $ap->id, 'type' => 'debit', 'amount' => $payment->amount],
+                ['account_head_id' => $debitHead, 'type' => 'debit', 'amount' => $payment->amount],
                 ['account_head_id' => $payment->account_head_id, 'type' => 'credit', 'amount' => $payment->amount],
             ]
         );

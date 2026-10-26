@@ -11,7 +11,7 @@ class VendorPayment extends Model
     use HasUuids;
 
     protected $fillable = [
-        'code', 'vendor_id', 'po_id', 'amount', 'payment_date',
+        'code', 'vendor_id', 'po_id', 'project_id', 'cost_head_id', 'amount', 'payment_date',
         'payment_method', 'reference', 'account_head_id', 'notes', 'created_by',
     ];
 
@@ -41,5 +41,22 @@ class VendorPayment extends Model
     public function createdBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function project(): BelongsTo
+    {
+        return $this->belongsTo(Project::class);
+    }
+
+    /** Expense head a direct (no-purchase) payment is booked to, e.g. Labour Cost. */
+    public function costHead(): BelongsTo
+    {
+        return $this->belongsTo(AccountHead::class, 'cost_head_id');
+    }
+
+    /** Paid for work or service, not against a purchase — the payment itself is the cost. */
+    public function isDirectCost(): bool
+    {
+        return !$this->po_id && (bool) $this->cost_head_id;
     }
 }

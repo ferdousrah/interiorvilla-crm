@@ -149,18 +149,35 @@ class ReportController extends Controller
                 ]);
 
             $payments = $vendor->payments()
+                ->with(['project:id,name', 'costHead:id,name', 'purchaseOrder:id,code'])
                 ->when($from, fn ($q) => $q->whereDate('payment_date', '>=', $from))
                 ->when($to,   fn ($q) => $q->whereDate('payment_date', '<=', $to))
                 ->get()
-                ->map(fn ($p) => [
-                    'date'        => (string) $p->payment_date?->toDateString(),
-                    'type'        => 'payment',
-                    'reference'   => $p->code,
-                    'description' => 'Payment made',
-                    'amount'      => (float) $p->amount,
-                ]);
+                ->flatMap(function ($p) {
+                    $date = (string) $p->payment_date?->toDateString();
+                    $rows = [];
+                    if ($p->isDirectCost()) {
+                        $rows[] = [
+                            'date'        => $date,
+                            'type'        => 'purchase_order',
+                            'label'       => 'work',
+                            'reference'   => $p->code,
+                            'description' => trim(($p->costHead?->name ?? 'Work') . ($p->project ? " · {$p->project->name}" : '')),
+                            'amount'      => (float) $p->amount,
+                        ];
+                    }
+                    $rows[] = [
+                        'date'        => $date,
+                        'type'        => 'payment',
+                        'reference'   => $p->code,
+                        'description' => $p->purchaseOrder ? "Payment for {$p->purchaseOrder->code}" : 'Payment made',
+                        'amount'      => (float) $p->amount,
+                    ];
+                    return $rows;
+                });
 
-            $transactions = $pos->merge($payments)->sortBy('date')->values();
+            // toBase(): with no purchases $pos is still an Eloquent collection, which can't merge plain rows.
+            $transactions = $pos->toBase()->merge($payments)->sortBy('date')->values();
 
             $balance = 0;
             $transactions = $transactions->map(function ($t) use (&$balance) {
@@ -254,7 +271,10 @@ class ReportController extends Controller
         $profit = 0;
 
         if ($projectId) {
-            $project = Project::with(['invoices', 'purchaseOrders', 'expenses.accountHead', 'expenses.category'])
+            $project = Project::with([
+                'invoices', 'purchaseOrders',
+                'expenses' => fn ($q) => $q->where('status', 'approved')->with(['accountHead', 'category']),
+            ])
                 ->find($projectId);
 
             if ($project) {
@@ -278,7 +298,17 @@ class ReportController extends Controller
                     'date'        => (string) $e->expense_date?->toDateString(),
                 ]);
 
-                $expenses = $poLines->merge($expenseLines)->values();
+                // Work paid straight to a vendor (carpenter, painter…) — purchases are already counted above.
+                $directLines = VendorPayment::with(['vendor:id,name', 'costHead:id,name'])
+                    ->where('project_id', $project->id)->whereNull('po_id')->whereNotNull('cost_head_id')
+                    ->get()
+                    ->map(fn ($p) => [
+                        'description' => trim(($p->vendor?->name ?? 'Vendor') . ' · ' . ($p->costHead?->name ?? 'Work') . " ({$p->code})"),
+                        'amount'      => (float) $p->amount,
+                        'date'        => (string) $p->payment_date?->toDateString(),
+                    ]);
+
+                $expenses = $poLines->merge($expenseLines)->merge($directLines)->sortBy('date')->values();
 
                 $totalRev = $revenue->sum('amount');
                 $totalExp = $expenses->sum('amount');
@@ -507,16 +537,16 @@ class ReportController extends Controller
                 'amount'      => (float) $e->amount,
             ]);
 
-        $payments = VendorPayment::with(['vendor:id,name', 'purchaseOrder:id,code,project_id', 'purchaseOrder.project:id,name'])
+        $payments = VendorPayment::with(['vendor:id,name', 'project:id,name', 'costHead:id,name', 'purchaseOrder:id,code,project_id', 'purchaseOrder.project:id,name'])
             ->when($from, fn ($q) => $q->whereDate('payment_date', '>=', $from))
             ->when($to, fn ($q) => $q->whereDate('payment_date', '<=', $to))
             ->get()
             ->map(fn ($p) => [
                 'date'        => $p->payment_date->toDateString(),
                 'code'        => $p->code,
-                'party'       => $p->purchaseOrder?->project?->name ?? '—',
+                'party'       => $p->project?->name ?? $p->purchaseOrder?->project?->name ?? '—',
                 'description' => trim(($p->vendor?->name ?? 'Vendor') . ($p->purchaseOrder ? " · Purchase {$p->purchaseOrder->code}" : '')),
-                'group'       => 'Vendor Payments (Purchases)',
+                'group'       => $p->isDirectCost() ? ($p->costHead?->name ?? 'Vendor work') : 'Vendor Payments (Purchases)',
                 'amount'      => (float) $p->amount,
             ]);
 

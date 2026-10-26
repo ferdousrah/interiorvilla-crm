@@ -116,7 +116,8 @@ class ProjectController extends Controller
             'total_invoiced' => $project->invoices()->sum('grand_total'),
             'total_received' => $project->invoices()->sum('paid_amount'),
             'total_po' => $project->purchaseOrders()->whereNotIn('status', ['cancelled'])->sum('grand_total'),
-            'total_expenses' => $project->expenses()->sum('amount'),
+            'total_expenses' => $project->expenses()->where('status', 'approved')->sum('amount'),
+            'total_direct_vendor' => \App\Models\VendorPayment::where('project_id', $project->id)->whereNull('po_id')->whereNotNull('cost_head_id')->sum('amount'),
         ];
 
         return Inertia::render('Projects/Show', [

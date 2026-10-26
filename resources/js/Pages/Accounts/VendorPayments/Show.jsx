@@ -24,10 +24,19 @@ export default function VendorPaymentShow({ payment }) {
                             </dd>
                         </div>
                         <div>
-                            <dt className="text-xs text-gray-500 uppercase">Purchase Order</dt>
+                            <dt className="text-xs text-gray-500 uppercase">For</dt>
                             <dd>
                                 {payment.purchase_order
-                                    ? <Link href={route('procurement.purchase-orders.show', payment.purchase_order.id)} className="text-primary-600 hover:underline">{payment.purchase_order.code}</Link>
+                                    ? <>Purchase <Link href={route('procurement.purchase-orders.show', payment.purchase_order.id)} className="text-primary-600 hover:underline">{payment.purchase_order.code}</Link></>
+                                    : payment.cost_head ? `Work · ${payment.cost_head.name}` : <span className="text-gray-400">—</span>
+                                }
+                            </dd>
+                        </div>
+                        <div>
+                            <dt className="text-xs text-gray-500 uppercase">Project</dt>
+                            <dd>
+                                {payment.project
+                                    ? <Link href={route('projects.show', payment.project.id)} className="text-primary-600 hover:underline">{payment.project.name}</Link>
                                     : <span className="text-gray-400">—</span>
                                 }
                             </dd>

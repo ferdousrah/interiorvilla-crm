@@ -6,7 +6,7 @@ import Pagination from '@/Components/Pagination';
 import { formatBDT, formatDate } from '@/utils/formatters';
 import { PlusIcon, BanknotesIcon } from '@heroicons/react/24/outline';
 
-export default function VendorPayments({ payments, totalAmount = 0, filters = {}, vendors = [] }) {
+export default function VendorPayments({ payments, totalAmount = 0, filters = {}, vendors = [], projects = [] }) {
     const rows = payments.data ?? payments;
     const total = payments.total ?? rows.length;
 
@@ -29,6 +29,7 @@ export default function VendorPayments({ payments, totalAmount = 0, filters = {}
                 <FilterBar routeName="accounts.vendor-payments.index" filters={filters} fields={[
                     { type: 'search', name: 'search', placeholder: 'Code, vendor, purchase, reference…' },
                     { type: 'select', name: 'vendor_id', placeholder: 'All vendors', options: vendors.map(v => ({ value: v.id, label: v.name })) },
+                    { type: 'select', name: 'project_id', placeholder: 'All projects', options: projects.map(pr => ({ value: pr.id, label: pr.name })) },
                     { type: 'select', name: 'payment_method', placeholder: 'All methods', options: ['cash', 'bank_transfer', 'cheque', 'bkash', 'nagad', 'rocket', 'other'].map(m => ({ value: m, label: m.replace('_', ' ').replace(/^./, c => c.toUpperCase()) })) },
                     { type: 'date', name: 'from', label: 'From' },
                     { type: 'date', name: 'to', label: 'To' },
@@ -36,7 +37,7 @@ export default function VendorPayments({ payments, totalAmount = 0, filters = {}
                 <div className="card overflow-x-auto">
                     <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-gray-50">
-                            <tr>{['Date', 'Code', 'Purchase', 'Vendor', 'Amount', 'Method', 'Paid From', 'Reference'].map(h => (
+                            <tr>{['Date', 'Code', 'Vendor', 'For', 'Project', 'Amount', 'Method', 'Paid From', 'Reference'].map(h => (
                                 <th key={h} className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{h}</th>
                             ))}</tr>
                         </thead>
@@ -48,12 +49,15 @@ export default function VendorPayments({ payments, totalAmount = 0, filters = {}
                                     <tr key={p.id} className="hover:bg-gray-50">
                                         <td className="px-4 py-3 text-sm whitespace-nowrap">{formatDate(p.payment_date)}</td>
                                         <td className="px-4 py-3 text-xs font-mono text-primary-700">{p.code}</td>
-                                        <td className="px-4 py-3 text-sm font-mono">
-                                            {purchase
-                                                ? <Link href={route('procurement.purchase-orders.show', purchase.id)} className="text-primary-600 hover:underline">{purchase.code}</Link>
-                                                : <span className="text-gray-400">—</span>}
-                                        </td>
                                         <td className="px-4 py-3 text-sm font-medium">{p.vendor?.name ?? '—'}</td>
+                                        <td className="px-4 py-3 text-sm">
+                                            {purchase
+                                                ? <Link href={route('procurement.purchase-orders.show', purchase.id)} className="font-mono text-primary-600 hover:underline">{purchase.code}</Link>
+                                                : (p.cost_head ?? p.costHead)
+                                                    ? <span className="text-gray-700">{(p.cost_head ?? p.costHead).name}</span>
+                                                    : <span className="text-gray-400">—</span>}
+                                        </td>
+                                        <td className="px-4 py-3 text-sm text-gray-700">{p.project?.name ?? '—'}</td>
                                         <td className="px-4 py-3 text-sm font-semibold text-red-600 tabular-nums">{formatBDT(p.amount)}</td>
                                         <td className="px-4 py-3 text-sm capitalize">{p.payment_method?.replace('_', ' ')}</td>
                                         <td className="px-4 py-3 text-sm text-gray-700">{account?.name ?? '—'}</td>
@@ -62,7 +66,7 @@ export default function VendorPayments({ payments, totalAmount = 0, filters = {}
                                 );
                             })}
                             {rows.length === 0 && (
-                                <tr><td colSpan={8} className="px-4 py-8 text-center text-gray-400">No vendor payments found.</td></tr>
+                                <tr><td colSpan={9} className="px-4 py-8 text-center text-gray-400">No vendor payments found.</td></tr>
                             )}
                         </tbody>
                     </table>

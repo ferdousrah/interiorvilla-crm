@@ -59,7 +59,8 @@ class InvoiceController extends Controller
         // Outstanding payables: approved/received POs minus payments made
         $poOutstanding = (float) \App\Models\PurchaseOrder::whereNotIn('status', ['cancelled', 'draft'])
             ->sum('grand_total');
-        $vendorPaid = (float) \App\Models\VendorPayment::sum('amount');
+        // Direct-cost payments (work with no purchase behind it) never created a payable.
+        $vendorPaid = (float) \App\Models\VendorPayment::whereNull('cost_head_id')->sum('amount');
         $totalPayables = max(0, $poOutstanding - $vendorPaid);
 
         // Cash & wallet balance — sum all asset heads in the 10xx range except

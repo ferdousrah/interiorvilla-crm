@@ -43,7 +43,7 @@
                 @forelse($transactions as $t)
                     <tr>
                         <td>{{ \Carbon\Carbon::parse($t['date'])->format('d M Y') }}</td>
-                        <td>{{ ucwords(str_replace('_', ' ', $t['type'])) }}</td>
+                        <td>{{ $t['type'] === 'payment' ? 'Payment' : ucfirst($t['label'] ?? 'purchase') }}</td>
                         <td>{{ $t['reference'] }}</td>
                         <td>{{ $t['description'] }}</td>
                         <td class="num">{{ $t['type'] === 'purchase_order' ? number_format($t['amount'], 2) : '—' }}</td>
